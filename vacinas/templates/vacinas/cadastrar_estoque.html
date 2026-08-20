@@ -15,28 +15,28 @@
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Imunizante (Vacina)</label>
-                        {{ form.nome_vacina }}
+                        <label for="nome_vacina" class="form-label fw-bold">Imunizante (Vacina)</label>
+                        <input type="text" name="nome_vacina" id="nome_vacina" class="form-control" required placeholder="Nome da vacina">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Número do Lote</label>
-                        {{ form.lote }}
+                        <label for="lote" class="form-label fw-bold">Número do Lote</label>
+                        <input type="text" name="lote" id="lote" class="form-control" required placeholder="Número do lote">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Quantidade de Doses</label>
-                        {{ form.quantidade_atual }}
+                        <label for="quantidade_atual" class="form-label fw-bold">Quantidade de Doses</label>
+                        <input type="number" name="quantidade_atual" id="quantidade_atual" class="form-control" min="1" required placeholder="0">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Data de Validade</label>
-                        {{ form.data_validade }}
+                        <label for="data_validade" class="form-label fw-bold">Data de Validade</label>
+                        <input type="date" name="data_validade" id="data_validade" class="form-control" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Fornecedor</label>
-                        {{ form.fornecedor }}
+                        <label for="fornecedor" class="form-label fw-bold">Fornecedor</label>
+                        <input type="text" name="fornecedor" id="fornecedor" class="form-control" placeholder="Nome do fornecedor">
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label fw-bold">Unidade / Posto</label>
-                        {{ form.posto }}
+                        <label for="posto" class="form-label fw-bold">Unidade / Posto</label>
+                        <input type="text" name="posto" id="posto" class="form-control" placeholder="Nome do posto ou unidade">
                     </div>
                 </div>
                 <div class="mt-4">
