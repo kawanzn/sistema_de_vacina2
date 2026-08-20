@@ -20,7 +20,7 @@ class PacienteForm(forms.ModelForm):
 
     class Meta:
         model = Paciente
-        fields = ['nome', 'data_nascimento', 'endereco', 'cpf', 'cartao_sus', 'telefone', 'responsavel']
+        fields = ['nome', 'data_nascimento', 'endereco', 'cpf','email', 'cartao_sus', 'telefone', 'responsavel']
         widgets = {
             'data_nascimento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome completo'}),
@@ -29,6 +29,7 @@ class PacienteForm(forms.ModelForm):
             'cartao_sus': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '000 0000 0000 0000'}),
             'telefone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '(00) 00000-0000'}),
             'responsavel': forms.Select(attrs={'class': 'form-select'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control','placeholder': 'email@exemplo.com'}),
         }
         labels = {
             'responsavel': 'Responsável (se for dependente)',

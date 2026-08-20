@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 class Paciente(models.Model):
     nome = models.CharField(max_length=200)
     cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
+    email = models.EmailField(blank=True)
     cartao_sus = models.CharField(max_length=15, unique=True, blank=True, null=True, verbose_name="Cartão SUS")
     data_nascimento = models.DateField()
     endereco = models.CharField(max_length=255, blank=True, default="")
