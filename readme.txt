@@ -1,5 +1,10 @@
-git clone https://github.com/jvtrem7/sistema-vacina
-cd sistema-vacina
+Sistema-vacina 2
+
+Ataides Alves Cota Junior - 202312481
+Kaio Abreu Oliveira - 202312160
+Kawan Lopes Mangia - 202312633
+João Victor Sampaio Gentil - 202312639
+Pedro Marcos Quintanilha de Oliveira Nunes - 202312595
 
 1) Criar o projeto no Supabase
 - Acesse: https://supabase.com/dashboard
