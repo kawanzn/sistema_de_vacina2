@@ -1,0 +1,19 @@
+✔ CT01: hand-off concluído contém somente nome e endereço públicos (5.7664ms)
+✔ CT02: API ausente oferece cópia manual (3.1468ms)
+✔ CT03: cancelamento não anuncia sucesso e permite nova tentativa (1.5003ms)
+✔ CT04: bloqueio de permissão permite recuperação sem alterar endereço (1.1451ms)
+✔ CT05: falha do destino preserva alternativa manual (1.0501ms)
+✔ CT06: clique repetido não abre dois compartilhamentos simultâneos (1.3167ms)
+✔ CT08: contexto inseguro usa cópia manual sem chamar recurso nativo (1.2335ms)
+✔ CT10: replay de login HTML não é confirmação de salvamento (66.8114ms)
+✔ CT10: JSON vazio ou sem confirmação explícita não é sucesso (3.1162ms)
+✔ CT10: apenas resposta positiva explícita confirma replay (3.98ms)
+✔ CT11: replay usa CSRF atual e mantém dados do formulário (1.2503ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 260.3217

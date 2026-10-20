@@ -1,0 +1,31 @@
+{
+  "data": "2026-10-20",
+  "ambiente": "Windows, SQLite isolado, Python 3.13.15",
+  "base_local": "2d794694a23a80e6a98cb45fb7dfefcca3f66adb",
+  "arquivos_sha256": {
+    "vacinas/forms.py": "bd2b4c934fc4ee57ef8d86c215040e7cf51a8a78fcce809fc954f847bb62e1fe",
+    "vacinas/views.py": "fb826996b1b73bcf362dc43e7c6b4d8c26728ff7a1dc2179879db18de82735e3",
+    "vacinas/tests.py": "aabc4f7a36b925d7ebaed241dde20bbf8ec6885c7a8641774c6ead14d91c4ecd",
+    "vacinas/static/vacinas/offline-sync.js": "f321eb8f0dcf5d28d9d1956090e98dc4ce113fe94c9aa74df27875608ada1a22",
+    "vacinas/static/vacinas/share-posto.js": "eec556488f2f0502e00cdead423520a4a2cf8a8b4ad48fb682c58c9324bfa04f",
+    "vacinas/static/vacinas/sw.js": "d35149045cd295888ced9fa065b2f6ba10fd4a82760dafaa344678de91146246",
+    "vacinas/templates/vacinas/postos.html": "3078412e501504f3a2b9a004faa5c3296e05de7f6b5dfd5b1533281ae8b17fcd",
+    "scripts/test_native_flow.cjs": "3a430ba2707e8021d18825022d5ae1efd489bb1f54e7af442111d1957e999b50"
+  },
+  "apk_original_sha256": "91d9a6acbf45719a4d4f30071c71d753ef4e9c66ef15705cda64e808b37145a2",
+  "resultados": {
+    "django": {
+      "executados": 7,
+      "aprovados": 7
+    },
+    "javascript_simulado": {
+      "executados": 11,
+      "aprovados": 11
+    },
+    "manual_web": {
+      "executados": 2,
+      "aprovados": 2
+    },
+    "android": "Bloqueado; não validado"
+  }
+}

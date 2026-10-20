@@ -1,0 +1,9 @@
+Inspeção estática com aapt, 20/10/2026
+Pacote: app.vercel.sistema_vacina.twa
+Versão: 1.0.0.0; versionCode 1
+minSdk: 23; targetSdk: 36
+Tipo: Trusted Web Activity / Android Browser Helper
+URL: https://sistema-vacina.vercel.app/
+Permissões declaradas: POST_NOTIFICATIONS e DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION do pacote
+SHA256: 91d9a6acbf45719a4d4f30071c71d753ef4e9c66ef15705cda64e808b37145a2
+Assinatura criptográfica e execução Android não validadas. APK original preservado.

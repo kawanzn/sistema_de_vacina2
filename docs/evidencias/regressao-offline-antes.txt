@@ -1,0 +1,67 @@
+✖ CT10: replay de login HTML não é confirmação de salvamento (117.3593ms)
+✖ CT10: JSON vazio ou sem confirmação explícita não é sucesso (1.4008ms)
+✔ CT10: apenas resposta positiva explícita confirma replay (5.5993ms)
+✖ CT11: replay usa CSRF atual e mantém dados do formulário (2.6294ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 413.7937
+
+✖ failing tests:
+
+test at ..\baseline-aula2\scripts\test_native_flow.cjs:79:1
+✖ CT10: replay de login HTML não é confirmação de salvamento (117.3593ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (C:\Users\Pedro\Documents\Codex\2026-10-20\https-github-com-pedronunes07-mydoctor2-git-2\work\baseline-aula2\scripts\test_native_flow.cjs:81:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ..\baseline-aula2\scripts\test_native_flow.cjs:83:1
+✖ CT10: JSON vazio ou sem confirmação explícita não é sucesso (1.4008ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (C:\Users\Pedro\Documents\Codex\2026-10-20\https-github-com-pedronunes07-mydoctor2-git-2\work\baseline-aula2\scripts\test_native_flow.cjs:84:56)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ..\baseline-aula2\scripts\test_native_flow.cjs:90:1
+✖ CT11: replay usa CSRF atual e mantém dados do formulário (2.6294ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'token-antigo'
+  - 'novo-token-ficticio'
+  
+      at TestContext.<anonymous> (C:\Users\Pedro\Documents\Codex\2026-10-20\https-github-com-pedronunes07-mydoctor2-git-2\work\baseline-aula2\scripts\test_native_flow.cjs:93:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'token-antigo',
+    expected: 'novo-token-ficticio',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
