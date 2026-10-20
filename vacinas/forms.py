@@ -70,9 +70,6 @@ class VacinaForm(forms.ModelForm):
             'paciente': forms.Select(attrs={'class': 'form-select w-100'}),
         }
 
-    class Meta:
-        model = Vacina
-        fields = ['paciente', 'posto_selecionado', 'item_estoque']
 class EstoqueForm(forms.ModelForm):
     class Meta:
         model = Estoque

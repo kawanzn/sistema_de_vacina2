@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Vacina, Paciente, Estoque, PostoSaude, Agendamento, OfflineSubmission
 from .forms import PacienteForm, VacinaForm, EstoqueForm
 from django.http import HttpResponse
-from django.db.models import Q
+from django.db.models import Q, F
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
@@ -457,25 +457,28 @@ def busca_postos(request):
         cep_limpo = cep_digitado.replace("-", "").replace(" ", "").replace(".", "")
         
         postos_encontrados = PostoSaude.objects.filter(
-            Q(cep=cep_digitado) | Q(cep=cep_limpo)
+            Q(cep=cep_digitado) | Q(cep=cep_limpo) | Q(bairro__icontains=cep_digitado)
         )
 
-        if not postos_encontrados.exists():
+        if not postos_encontrados.exists() and cep_limpo.isdigit() and len(cep_limpo) == 8:
             url = f"https://viacep.com.br/ws/{cep_limpo}/json/"
             try:
                 response = requests.get(url, timeout=5)
                 if response.status_code == 200:
                     dados = response.json()
-                    if 'erro' not in dados:
-                        bairro_detectado = dados.get('bairro')
+                    if not dados.get('erro') and dados.get('bairro'):
+                        bairro_detectado = dados['bairro']
                         postos_encontrados = PostoSaude.objects.filter(bairro__icontains=bairro_detectado)
-            except:
-                pass 
+            except (requests.RequestException, ValueError, TypeError):
+                pass
 
     for posto in postos_encontrados:
         
         from .models import Estoque # Importe dentro ou no topo do arquivo
-        posto.estoque_vacinas = Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
+        posto.estoque_vacinas = Estoque.objects.filter(
+            posto=posto, quantidade_atual__gt=F('quantidade_reservada'),
+            data_validade__gte=timezone.localdate(),
+        )
 
     return render(request, 'vacinas/postos.html', {
         'postos': postos_encontrados,
