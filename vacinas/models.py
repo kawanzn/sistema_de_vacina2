@@ -1,11 +1,33 @@
 from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.utils import timezone
+from .firestore_store import DocumentModel, run_atomic
+from django.contrib.auth.base_user import AbstractBaseUser
 
-class Paciente(models.Model):
+
+class Servidor(DocumentModel, AbstractBaseUser):
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(blank=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = []
+
+    def has_perm(self, perm, obj=None):
+        return self.is_active and self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_active and self.is_superuser
+
+    def get_full_name(self):
+        return self.username
+
+    def get_short_name(self):
+        return self.username
+
+class Paciente(DocumentModel):
     nome = models.CharField(max_length=200)
     cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
     email = models.EmailField(blank=True)
@@ -25,7 +47,7 @@ class Paciente(models.Model):
     def __str__(self):
         return self.nome
     
-class PostoSaude(models.Model):
+class PostoSaude(DocumentModel):
     nome = models.CharField(max_length=100)
     endereco = models.CharField(max_length=255)
     bairro = models.CharField(max_length=100)
@@ -34,18 +56,40 @@ class PostoSaude(models.Model):
     def __str__(self):
         return self.nome
     
-class Estoque(models.Model):
+class Estoque(DocumentModel):
     nome_vacina = models.CharField(max_length=100)
     lote = models.CharField(max_length=50)
-    quantidade_atual = models.IntegerField(default=0)
+    quantidade_atual = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     data_validade = models.DateField()
     fornecedor = models.CharField(max_length=100, default="Secretaria de Saúde")
     posto = models.ForeignKey(PostoSaude, on_delete=models.CASCADE, related_name='vacinas_estoque', null=True, blank=True)
     quantidade_reservada = models.PositiveIntegerField(default=0)
+
+    @property
+    def dias_para_vencer(self):
+        return (self.data_validade - timezone.localdate()).days
+
+    @property
+    def vencido(self):
+        # A data informada vale até o fim do dia, no fuso do sistema.
+        return self.dias_para_vencer < 0
+
+    @property
+    def validade_status(self):
+        if self.vencido:
+            return 'vencido'
+        if self.dias_para_vencer <= 30:
+            return 'proximo'
+        return 'regular'
+
+    @property
+    def disponivel_para_uso(self):
+        return not self.vencido and self.quantidade_atual > self.quantidade_reservada
+
     def __str__(self):
         return f"{self.nome_vacina} - Lote: {self.lote} ({self.posto.nome if self.posto else 'Sem Posto'})"
 
-class Vacina(models.Model):
+class Vacina(DocumentModel):
     nome_vacina = models.CharField(max_length=100) # Nome descritivo
     lote = models.CharField(max_length=50)
     data_aplicacao = models.DateTimeField(auto_now_add=True)
@@ -59,36 +103,33 @@ class Vacina(models.Model):
 
     def clean(self):
         # Validação para garantir que não aplique vacina sem estoque
-        if self.item_estoque and self.item_estoque.quantidade_atual <= 0:
-            raise ValidationError(f"O estoque da vacina {self.item_estoque.nome_vacina} está esgotado neste posto.")
+        if self.item_estoque and self.item_estoque.vencido:
+            raise ValidationError('Este lote está vencido e não pode ser utilizado.')
+        if self.item_estoque and self.item_estoque.quantidade_atual <= self.item_estoque.quantidade_reservada:
+            raise ValidationError('Não há dose disponível fora das reservas. Confirme o agendamento para usar uma dose reservada.')
 
     def save(self, *args, **kwargs):
-        # Se selecionou um item do estoque, puxa o nome, lote e posto automaticamente para a aplicação
-        if self.item_estoque:
-            self.nome_vacina = self.item_estoque.nome_vacina
-            self.lote = self.item_estoque.lote
-            self.posto = self.item_estoque.posto
-        
-        self.full_clean() # Executa a validação do clean() antes de salvar
-        super().save(*args, **kwargs)
+        def apply():
+            creating = not self.pk
+            estoque = Estoque.objects.get(pk=self.item_estoque_id) if self.item_estoque_id else None
+            if estoque:
+                if creating and estoque.quantidade_atual <= estoque.quantidade_reservada:
+                    raise ValidationError("Não há dose disponível fora das reservas.")
+                self.item_estoque = estoque
+                self.nome_vacina = estoque.nome_vacina
+                self.lote = estoque.lote
+                self.posto = estoque.posto
+            self.full_clean()
+            super(Vacina, self).save(*args, **kwargs)
+            if creating and estoque:
+                estoque.quantidade_atual -= 1
+                estoque.save()
+        return run_atomic(apply)
 
     def __str__(self):
         return f"{self.nome_vacina} - {self.paciente.nome}"
 
-# --- SINAL PARA BAIXAR ESTOQUE AUTOMATICAMENTE ---
-@receiver(post_save, sender=Vacina)
-def baixar_estoque(sender, instance, created, **kwargs):
-    """
-    Sempre que uma nova Vacina (aplicação) for criada, 
-    subtrai 1 unidade do item correspondente no Estoque.
-    """
-    if created and instance.item_estoque:
-        estoque = instance.item_estoque
-        if estoque.quantidade_atual > 0:
-            estoque.quantidade_atual -= 1
-            estoque.save()
-
-class Agendamento(models.Model):
+class Agendamento(DocumentModel):
     STATUS_CHOICES = [
         ('pendente', 'Pendente'),
         ('concluido', 'Concluído'),
@@ -110,7 +151,7 @@ class Agendamento(models.Model):
 # quantidade_reservada = models.PositiveIntegerField(default=0)
 
 
-class OfflineSubmission(models.Model):
+class OfflineSubmission(DocumentModel):
     STATUS_CHOICES = [
         ('applied', 'Aplicado'),
         ('failed', 'Falhou'),
@@ -118,12 +159,7 @@ class OfflineSubmission(models.Model):
 
     client_id = models.CharField(max_length=80, unique=True)
     endpoint = models.CharField(max_length=200)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
+    user = models.BigIntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -134,3 +170,6 @@ class OfflineSubmission(models.Model):
 
     def __str__(self):
         return f"{self.client_id} - {self.status}"
+
+# A lista de dependentes também é consultada no Firestore.
+Paciente.dependentes = property(lambda self: Paciente.objects.filter(responsavel_id=self.pk))

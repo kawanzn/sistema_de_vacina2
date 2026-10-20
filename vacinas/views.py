@@ -12,12 +12,62 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.db import transaction
+from . import firestore_store as transaction
+from .firestore_store import atomic_view
 from django.db.utils import OperationalError, ProgrammingError
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
+from django import forms
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from .models import Servidor
+
+
+class PostoForm(forms.ModelForm):
+    class Meta:
+        model = PostoSaude
+        fields = ['nome', 'endereco', 'bairro', 'cep']
+
+
+class ServidorForm(forms.Form):
+    username = forms.CharField(label='Usuário', max_length=150)
+    email = forms.EmailField(label='E-mail', required=False)
+    password = forms.CharField(label='Senha', widget=forms.PasswordInput)
+
+    def clean_password(self):
+        password = self.cleaned_data['password']
+        validate_password(password)
+        return password
+
+
+@login_required
+@atomic_view
+def configuracoes(request):
+    if not request.user.is_superuser:
+        return HttpResponse('Acesso exclusivo do administrador.', status=403)
+    posto_form = PostoForm(request.POST if request.POST.get('action') == 'posto' else None)
+    servidor_form = ServidorForm(request.POST if request.POST.get('action') == 'servidor' else None)
+    if request.method == 'POST':
+        if request.POST.get('action') == 'posto' and posto_form.is_valid():
+            posto_form.save()
+            messages.success(request, 'Posto cadastrado com sucesso.')
+            return redirect('configuracoes')
+        if request.POST.get('action') == 'servidor' and servidor_form.is_valid():
+            data = servidor_form.cleaned_data
+            if Servidor.objects.filter(username=data['username']).exists():
+                servidor_form.add_error('username', 'Este usuário já existe.')
+            else:
+                user = Servidor(username=data['username'], email=data['email'])
+                user.set_password(data['password'])
+                user.save()
+                messages.success(request, 'Servidor cadastrado com sucesso.')
+                return redirect('configuracoes')
+    return render(request, 'vacinas/configuracoes.html', {
+        'posto_form': posto_form, 'servidor_form': servidor_form,
+        'postos': PostoSaude.objects.order_by('nome'),
+    })
 
 
 OFFLINE_TRACKING_DISABLED = False
@@ -68,7 +118,7 @@ def _mark_offline_applied(request):
             client_id=client_id,
             defaults={
                 'endpoint': request.path[:200],
-                'user': request.user if request.user.is_authenticated else None,
+                'user': request.user.pk if request.user.is_authenticated else None,
                 'status': 'applied',
                 'error_message': '',
                 'applied_at': timezone.now(),
@@ -141,6 +191,7 @@ def home(request):
     })
 
 @login_required
+@atomic_view
 def cadastrar_paciente(request):
     if request.method == 'POST': 
         if _offline_already_applied(request):
@@ -162,6 +213,7 @@ def cadastrar_paciente(request):
     return render(request, 'vacinas/cadastro_paciente.html', {'form': form})
 
 @login_required
+@atomic_view
 def registrar_dose(request):
     if request.method == 'POST':
         if _offline_already_applied(request):
@@ -172,8 +224,6 @@ def registrar_dose(request):
             _mark_offline_applied(request)
             return _sync_success(request, 'home')
         else:
-            # Isso vai imprimir o erro no terminal do seu PC para você ver o que é
-            print(form.errors)
             error_response = _sync_error(request, _form_error_message(form))
             if error_response:
                 return error_response
@@ -187,6 +237,7 @@ def listar_pacientes(request):
     return render(request, 'vacinas/listar_pacientes.html', {'pacientes': pacientes})
 
 @login_required
+@atomic_view
 def editar_paciente(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk)
     form = PacienteForm(request.POST or None, instance=paciente) 
@@ -428,6 +479,7 @@ def listar_estoque(request):
     return render(request, 'vacinas/estoque.html', {'itens': itens})
 
 @login_required
+@atomic_view
 def cadastrar_estoque(request):
     if request.method == 'POST':
         if _offline_already_applied(request):
@@ -475,7 +527,10 @@ def busca_postos(request):
     for posto in postos_encontrados:
         
         from .models import Estoque # Importe dentro ou no topo do arquivo
-        posto.estoque_vacinas = Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
+        posto.estoque_vacinas = [
+            item for item in Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
+            if item.disponivel_para_uso
+        ]
 
     return render(request, 'vacinas/postos.html', {
         'postos': postos_encontrados,
@@ -510,7 +565,11 @@ def exportar_dados_csv(request):
 
 def carregar_vacinas_posto(request):
     posto_id = request.GET.get('posto_id')
-    vacinas = Estoque.objects.filter(posto_id=posto_id, quantidade_atual__gt=0).values('id', 'nome_vacina', 'lote')
+    vacinas = [
+        {'id': item.pk, 'nome_vacina': item.nome_vacina, 'lote': item.lote}
+        for item in Estoque.objects.filter(posto_id=posto_id, quantidade_atual__gt=0)
+        if item.disponivel_para_uso
+    ]
     return JsonResponse(list(vacinas), safe=False)
 
 
@@ -519,7 +578,7 @@ def offline_bootstrap(request):
     estoques = []
     for item in Estoque.objects.filter(quantidade_atual__gt=0).select_related('posto').order_by('nome_vacina'):
         disponivel = max(item.quantidade_atual - item.quantidade_reservada, 0)
-        if disponivel <= 0:
+        if not item.disponivel_para_uso:
             continue
         estoques.append({
             'id': item.id,
@@ -552,6 +611,7 @@ def offline_bootstrap(request):
     return JsonResponse(payload)
 
 
+@atomic_view
 def agendar_vacina(request):
     # Definimos a variável no topo para ela sempre existir
     postos = PostoSaude.objects.all()
@@ -581,6 +641,14 @@ def agendar_vacina(request):
         try:
             with transaction.atomic():
                 estoque = Estoque.objects.select_for_update().get(id=item_id)
+
+                if estoque.vencido or estoque.data_validade < timezone.localtime(data_hora).date():
+                    message = 'O lote está vencido ou vence antes da data do agendamento. Escolha outro lote.'
+                    error_response = _sync_error(request, message, status=409)
+                    if error_response:
+                        return error_response
+                    messages.error(request, message)
+                    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
                 
                 if (estoque.quantidade_atual - estoque.quantidade_reservada) > 0:
                     Agendamento.objects.create(
@@ -610,9 +678,6 @@ def agendar_vacina(request):
     # Este retorno garante que o GET (carregamento inicial) funcione sem erro de 'postos'
     return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
             
-    postos = PostoSaude.objects.all()
-    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
-
 @login_required
 def listar_agendamentos(request):
     agendamentos = Agendamento.objects.filter(status='pendente').select_related('paciente', 'item_estoque', 'item_estoque__posto').order_by('data_hora')
@@ -638,6 +703,8 @@ def meus_agendamentos(request):
     })
 
 @login_required
+@atomic_view
+@require_POST
 def confirmar_agendamento(request, agendamento_id):
     agendamento = get_object_or_404(Agendamento, id=agendamento_id)
 
@@ -653,6 +720,13 @@ def confirmar_agendamento(request, agendamento_id):
 
     with transaction.atomic():
         estoque = Estoque.objects.select_for_update().get(pk=agendamento.item_estoque_id)
+        if estoque.vencido:
+            message = 'Este lote venceu. A dose não foi aplicada; cancele o agendamento e escolha outro lote.'
+            error_response = _sync_error(request, message, status=409)
+            if error_response:
+                return error_response
+            messages.error(request, message)
+            return redirect('listar_agendamentos')
         if estoque.quantidade_atual > 0 and estoque.quantidade_reservada > 0:
             estoque.quantidade_reservada -= 1
             estoque.save(update_fields=['quantidade_reservada'])
@@ -675,29 +749,14 @@ def confirmar_agendamento(request, agendamento_id):
     return _sync_success(request, 'listar_agendamentos', 'Confirmacao sincronizada com sucesso.')
 
 @login_required
-def cancelar_agendamento(request, agendamento_id):
-    agendamento = get_object_or_404(Agendamento, id=agendamento_id)
-    
-    with transaction.atomic():
-        estoque = agendamento.item_estoque
-        # No cancelamento, a gente APENAS diminui a reserva
-        # A quantidade_atual não muda porque a vacina não foi aplicada
-        if estoque.quantidade_reservada > 0:
-            estoque.quantidade_reservada -= 1
-            estoque.save()
-            
-            agendamento.status = 'cancelado'
-            agendamento.save()
-            messages.warning(request, f"Agendamento de {agendamento.paciente.nome} cancelado.")
-            
-    return redirect('listar_agendamentos')
-
 def historico_agendamentos(request):
     # Aqui pegamos todos que NÃO estão pendentes para ser o seu arquivo morto
     agendamentos = Agendamento.objects.exclude(status='pendente').order_by('-data_hora')
     return render(request, 'vacinas/historico_agendamentos.html', {'agendamentos': agendamentos})
 
 @login_required
+@atomic_view
+@require_POST
 def cancelar_agendamento(request, agendamento_id):
     agendamento = get_object_or_404(Agendamento, id=agendamento_id)
     
@@ -709,12 +768,10 @@ def cancelar_agendamento(request, agendamento_id):
         with transaction.atomic():
             estoque = agendamento.item_estoque
             
-            # Se estava concluído, devolvemos 1 para a quantidade atual
-            if agendamento.status == 'concluido':
-                estoque.quantidade_atual += 1
-            # Se estava pendente, apenas removemos da reserva
-            elif agendamento.status == 'pendente':
-                estoque.quantidade_reservada -= 1
+            if agendamento.status != 'pendente':
+                return _sync_error(request, 'Somente agendamentos pendentes podem ser cancelados.', status=409) or redirect('listar_agendamentos')
+            # Uma dose aplicada nunca volta para o estoque físico.
+            estoque.quantidade_reservada = max(0, estoque.quantidade_reservada - 1)
             
             estoque.save()
             
@@ -725,9 +782,6 @@ def cancelar_agendamento(request, agendamento_id):
             
             messages.warning(request, "Agendamento cancelado e estoque atualizado.")
             return _sync_success(request, 'listar_agendamentos', 'Cancelamento sincronizado com sucesso.')
-
-    return render(request, 'vacinas/confirmar_cancelamento.html', {'agendamento': agendamento})
-
 
 @require_GET
 def manifest(request):

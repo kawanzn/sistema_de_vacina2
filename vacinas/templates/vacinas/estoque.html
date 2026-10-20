@@ -11,6 +11,8 @@
     </a>
 </header>
 
+<p class="text-muted small">Os alertas consideram a validade do lote. O aviso amarelo aparece a partir de 30 dias antes do vencimento.</p>
+
 <div class="content-card border-0 shadow-sm">
     <div class="table-responsive">
         <table class="table table-mobile-cards">
@@ -51,7 +53,16 @@
                         <span>{{ item.data_validade|date:"d/m/Y" }}</span>
                     </td>
                     <td data-label="Status">
-                        <span class="badge bg-success-subtle text-success border border-success-secondary">Estoque Ok</span>
+                        {% if item.validade_status == 'vencido' %}
+                        <span class="badge bg-danger">Vencido — uso bloqueado</span>
+                        {% elif item.validade_status == 'proximo' %}
+                        <span class="badge bg-warning text-dark">Próximo do vencimento</span>
+                        <small class="d-block text-muted mt-1">
+                            {% if item.dias_para_vencer == 0 %}Vence hoje{% else %}Vence em {{ item.dias_para_vencer }} dia{{ item.dias_para_vencer|pluralize:"s" }}{% endif %}
+                        </small>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-secondary">Dentro da validade</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from .models import Paciente, Vacina, Estoque, PostoSaude
 
 class PacienteForm(forms.ModelForm):
@@ -58,7 +59,10 @@ class VacinaForm(forms.ModelForm):
         if 'posto_selecionado' in self.data:
             try:
                 posto_id = int(self.data.get('posto_selecionado'))
-                self.fields['item_estoque'].queryset = Estoque.objects.filter(posto_id=posto_id, quantidade_atual__gt=0)
+                self.fields['item_estoque'].queryset = Estoque.objects.filter(
+                    posto_id=posto_id, quantidade_atual__gt=0,
+                    data_validade__gte=timezone.localdate(),
+                )
             except (ValueError, TypeError):
                 pass
 

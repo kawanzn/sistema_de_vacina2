@@ -1,5 +1,4 @@
 import os
-import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -9,13 +8,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 # 2. Configurações Básicas
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-substitua-isso-se-necessario')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'local-development-only-do-not-use-in-production')
+if os.environ.get('VERCEL') and not os.environ.get('SECRET_KEY'):
+    raise RuntimeError('Configure SECRET_KEY na Vercel.')
 
 # MELHORIA: DEBUG False em produção evita que mostre seu código em erros
-DEBUG = os.environ.get('DEBUG', 'True').lower() in {'1', 'true', 'yes'}
+DEBUG = os.environ.get('DEBUG', 'False').lower() in {'1', 'true', 'yes'}
 
 # MELHORIA: Liste seu domínio da Vercel aqui para segurança
-ALLOWED_HOSTS = ['*', 'sistema-vacina.vercel.app'] 
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.vercel.app').split(',')
 
 # MELHORIA: Resolve o erro 403 do seu amigo
 CSRF_TRUSTED_ORIGINS = [
@@ -32,7 +33,6 @@ LOGOUT_REDIRECT_URL = 'index_escolha'
 
 # 3. Apps e Middlewares
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -71,23 +71,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# 4. Banco de Dados (Postgres via DATABASE_URL em produção; SQLite local sem .env)
-_database_url = os.environ.get('DATABASE_URL')
-if _database_url:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=_database_url,
-            conn_max_age=0,
-            ssl_require=True,
-        )
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# O Firestore é o banco persistente. O backend dummy impede uso acidental de SQL.
+DATABASES = {'default': {'ENGINE': 'django.db.backends.dummy'}}
+AUTH_USER_MODEL = 'vacinas.Servidor'
+AUTHENTICATION_BACKENDS = ['vacinas.auth_backend.FirestoreBackend']
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 3600
+SESSION_COOKIE_SECURE = bool(os.environ.get('VERCEL'))
+CSRF_COOKIE_SECURE = bool(os.environ.get('VERCEL'))
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # 5. Configurações de Segurança e Idioma
 AUTH_PASSWORD_VALIDATORS = [
@@ -110,6 +103,9 @@ STATICFILES_DIRS = [
 ]
 
 # MELHORIA: WhiteNoise com compressão (deixa o site mais rápido no celular)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

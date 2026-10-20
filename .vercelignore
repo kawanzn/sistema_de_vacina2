@@ -1,0 +1,12 @@
+.git
+.venv
+.runtime
+.secrets
+.env
+.env.*
+venv]
+**/__pycache__
+**/*.pyc
+firebase-debug.log
+firestore-debug.log
+vacinas/tests.py
