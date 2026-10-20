@@ -1,11 +1,10 @@
-from django.contrib import admin
 from django.urls import path
 from vacinas import views 
 from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', views.configuracoes, name='configuracoes'),
     path('manifest.webmanifest', views.manifest, name='manifest'),
     path('sw.js', views.service_worker, name='service_worker'),
     path('', views.index_escolha, name='index_escolha'),

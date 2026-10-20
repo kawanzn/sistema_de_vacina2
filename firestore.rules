@@ -1,0 +1,11 @@
+rules_version = '2';
+// Protótipo acadêmico: pacientes, postos, estoques, doses, agendamentos,
+// servidores e registros de sincronização são acessados somente pelo servidor.
+// O backend valida campos e autenticação; seu acesso é controlado por IAM.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

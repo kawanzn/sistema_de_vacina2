@@ -199,6 +199,7 @@
             <img src="{% static 'vacinas/easyvacc.png' %}" alt="easyvacc" class="logo-img">
         </div>
         <nav class="nav flex-column">
+            {% if user.is_superuser %}<a class="nav-link" href="{% url 'configuracoes' %}"><i class="fas fa-cog"></i> Administração</a>{% endif %}
             {% if user.is_authenticated and "/caderneta/" not in request.path and "/postos/" not in request.path %}
                 <p class="menu-header" style="padding: 1.2rem 1.2rem 0.4rem; text-transform: uppercase; font-size: 0.65rem; font-weight: 700; color: #94a3b8;">Administração</p>
                 <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><i class="fas fa-chart-line"></i> Dashboard</a>

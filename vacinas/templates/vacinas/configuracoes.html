@@ -1,0 +1,22 @@
+{% extends 'vacinas/base.html' %}
+{% block content %}
+<h2>Administração do EasyVacc</h2>
+<p>Cadastre as unidades de saúde e os servidores que terão acesso ao painel.</p>
+{% for message in messages %}<div class="alert alert-info">{{ message }}</div>{% endfor %}
+<div class="row g-4">
+  <section class="col-md-6"><div class="card p-4">
+    <h3>Novo posto de saúde</h3>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="posto">
+      {{ posto_form.as_p }}<button class="btn btn-primary">Cadastrar posto</button>
+    </form>
+  </div></section>
+  <section class="col-md-6"><div class="card p-4">
+    <h3>Novo servidor</h3>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="servidor">
+      {{ servidor_form.as_p }}<button class="btn btn-primary">Cadastrar servidor</button>
+    </form>
+  </div></section>
+</div>
+<h3 class="mt-4">Postos cadastrados</h3>
+<ul>{% for posto in postos %}<li>{{ posto.nome }} — {{ posto.bairro }}</li>{% empty %}<li>Nenhum posto cadastrado.</li>{% endfor %}</ul>
+{% endblock %}
