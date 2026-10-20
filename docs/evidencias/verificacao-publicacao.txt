@@ -1,0 +1,10 @@
+Verificação HTTP pública realizada em 20/10/2026 com requests e validação TLS padrão.
+Domínio: https://sistema-vacina.vercel.app
+GET /: 200 text/html
+GET /manifest.webmanifest: 200 application/manifest+json
+GET /sw.js: 200 application/javascript
+GET /.well-known/assetlinks.json: 404 text/html
+GET /static/vacinas/share-posto.js: 404 text/html
+Conclusão: código publicado no GitHub ainda não confirmado no domínio utilizado pelo APK.
+DF06 aberto: associação TWA ausente no domínio consultado. EX16 bloqueia a validação Android de CT01.
+Nenhum dado de paciente foi consultado.
