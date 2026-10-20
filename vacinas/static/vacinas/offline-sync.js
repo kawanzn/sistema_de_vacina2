@@ -116,8 +116,11 @@
   function formDataFromEntries(entries) {
     var formData = new FormData();
     entries.forEach(function (entry) {
+      if (entry[0] === 'csrfmiddlewaretoken') return;
       formData.append(entry[0], entry[1]);
     });
+    var csrf = getCookie('csrftoken');
+    if (csrf) formData.append('csrfmiddlewaretoken', csrf);
     return formData;
   }
 
@@ -254,14 +257,13 @@
       }),
     }).then(function (response) {
       var contentType = response.headers.get('content-type') || '';
-      if (contentType.indexOf('application/json') === -1) {
-        if (response.ok || response.redirected) return { ok: true };
-        return { ok: false, message: 'Servidor retornou HTTP ' + response.status };
+      if (response.redirected || contentType.indexOf('application/json') === -1) {
+        return { ok: false, message: 'Envio não confirmado. Entre novamente e tente sincronizar.', status: response.status };
       }
       return response.json().catch(function () {
         return null;
       }).then(function (data) {
-        if (response.ok && (!data || data.ok !== false)) return { ok: true };
+        if (response.ok && data && data.ok === true) return { ok: true };
         return {
           ok: false,
           message: data && data.message ? data.message : 'Falha ao sincronizar.',
@@ -393,6 +395,8 @@
       if (!navigator.onLine) {
         enqueue(form).then(function () {
           handleOfflineQueued(form);
+        }).catch(function () {
+          flash('Não foi possível guardar neste aparelho. Os campos foram preservados; tente novamente.', 'error');
         }).finally(function () {
           if (submitter) submitter.disabled = false;
         });
@@ -431,6 +435,8 @@
       }).catch(function () {
         return enqueue(form).then(function () {
           handleOfflineQueued(form);
+        }).catch(function () {
+          flash('Não foi possível guardar neste aparelho. Os campos foram preservados; tente novamente.', 'error');
         });
       }).finally(function () {
         if (submitter) submitter.disabled = false;
