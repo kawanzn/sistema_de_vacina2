@@ -233,3 +233,11 @@ executados. Nenhum resultado local comprova, sozinho, funcionamento no domínio 
 - [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
 - [Trusted Web Activity](https://developer.chrome.com/docs/android/trusted-web-activity/integration-guide)
 - Materiais da disciplina: guia Aula 2 fornecido pelo professor, planilha e PDF recebidos em 20/10/2026.
+
+## Verificação da publicação em 20/10/2026
+A consulta HTTP pública retornou 200 para a página inicial, manifest e service worker.
+O novo /static/vacinas/share-posto.js retornou 404: o domínio ainda não publicou os arquivos desta revisão.
+/.well-known/assetlinks.json também retornou 404. Foi aberto DF06 (origem EX16, CT01 bloqueado)
+para configurar e validar a associação entre o domínio e o pacote/certificado do APK.
+A validação do certificado e do vínculo precisa ser concluída no projeto Android original e em dispositivo compatível.
+Essas pendências não foram marcadas como corrigidas. Consulte [a evidência HTTP](evidencias/verificacao-publicacao.txt).
