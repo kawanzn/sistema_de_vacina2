@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 from .firestore_store import DocumentModel, run_atomic
 from django.contrib.auth.base_user import AbstractBaseUser
 
@@ -63,6 +64,28 @@ class Estoque(DocumentModel):
     fornecedor = models.CharField(max_length=100, default="Secretaria de Saúde")
     posto = models.ForeignKey(PostoSaude, on_delete=models.CASCADE, related_name='vacinas_estoque', null=True, blank=True)
     quantidade_reservada = models.PositiveIntegerField(default=0)
+
+    @property
+    def dias_para_vencer(self):
+        return (self.data_validade - timezone.localdate()).days
+
+    @property
+    def vencido(self):
+        # A data informada vale até o fim do dia, no fuso do sistema.
+        return self.dias_para_vencer < 0
+
+    @property
+    def validade_status(self):
+        if self.vencido:
+            return 'vencido'
+        if self.dias_para_vencer <= 30:
+            return 'proximo'
+        return 'regular'
+
+    @property
+    def disponivel_para_uso(self):
+        return not self.vencido and self.quantidade_atual > self.quantidade_reservada
+
     def __str__(self):
         return f"{self.nome_vacina} - Lote: {self.lote} ({self.posto.nome if self.posto else 'Sem Posto'})"
 
@@ -80,6 +103,8 @@ class Vacina(DocumentModel):
 
     def clean(self):
         # Validação para garantir que não aplique vacina sem estoque
+        if self.item_estoque and self.item_estoque.vencido:
+            raise ValidationError('Este lote está vencido e não pode ser utilizado.')
         if self.item_estoque and self.item_estoque.quantidade_atual <= self.item_estoque.quantidade_reservada:
             raise ValidationError('Não há dose disponível fora das reservas. Confirme o agendamento para usar uma dose reservada.')
 

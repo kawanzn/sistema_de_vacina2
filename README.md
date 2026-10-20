@@ -26,6 +26,28 @@ praticar a integração entre uma aplicação Django e um banco de documentos.
 - O cancelamento de uma dose já aplicada é bloqueado: ela não pode voltar ao estoque.
 - As credenciais ficam em variáveis de ambiente e não são enviadas ao GitHub.
 
+### Nova melhoria para a aula: alertas de validade dos lotes
+
+Antes, a tela mostrava “Estoque Ok” mesmo quando a validade do lote já havia
+passado. Agora ela apresenta três situações:
+
+- **Vencido:** alerta vermelho e bloqueio de aplicação e novos agendamentos.
+- **Próximo do vencimento:** alerta amarelo quando faltam até 30 dias, com a
+  quantidade de dias restantes ou o aviso “Vence hoje”.
+- **Dentro da validade:** indicação verde quando faltam mais de 30 dias.
+
+Lotes vencidos continuam visíveis no controle de estoque, mas deixam de aparecer
+nas opções de vacinas do portal e da sincronização offline. O servidor confere
+a validade novamente ao salvar, inclusive quando um pedido offline é reenviado.
+O agendamento também é bloqueado se a data escolhida ultrapassar a validade do
+lote. Caso o lote vença depois da reserva, a confirmação é bloqueada sem alterar
+o estoque; o servidor pode cancelar e organizar outro agendamento.
+
+**Como demonstrar em aula:** cadastre lotes fictícios com validade ontem, daqui
+a 15 dias e daqui a 60 dias. Abra “Controle de Estoque” para comparar os alertas.
+Depois, tente agendar uma data posterior à validade de um lote. Neste exercício,
+a validade é considerada até o fim da data cadastrada, no fuso de São Paulo.
+
 ### Como os dados são organizados
 
 | Informação | Coleção |

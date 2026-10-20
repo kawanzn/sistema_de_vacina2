@@ -7,12 +7,29 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from unittest import skipUnless
+from unittest.mock import patch
 from django.core.exceptions import ValidationError
 from django.test import Client, SimpleTestCase, override_settings
 from django.utils import timezone
 from .firestore_store import client, run_atomic
 from .forms import PacienteForm
 from .models import Agendamento, Estoque, Paciente, PostoSaude, Servidor, Vacina
+
+
+class StockValidityTests(SimpleTestCase):
+    @patch('vacinas.models.timezone.localdate', return_value=date(2026, 10, 20))
+    def test_validity_boundaries(self, today):
+        for days, status in [(-1, 'vencido'), (0, 'proximo'), (30, 'proximo'), (31, 'regular')]:
+            with self.subTest(days=days):
+                stock = Estoque(data_validade=today.return_value+timedelta(days=days), quantidade_atual=2)
+                self.assertEqual(stock.validade_status, status)
+                self.assertEqual(stock.vencido, days < 0)
+                self.assertEqual(stock.disponivel_para_uso, days >= 0)
+
+    @patch('vacinas.models.timezone.localdate', return_value=date(2026, 10, 20))
+    def test_reserved_stock_is_not_available(self, today):
+        stock = Estoque(data_validade=today.return_value, quantidade_atual=1, quantidade_reservada=1)
+        self.assertFalse(stock.disponivel_para_uso)
 
 
 @skipUnless(os.environ.get('RUN_FIRESTORE_TESTS') == '1', 'Requer Firestore de teste explÃ­cito.')
@@ -161,3 +178,44 @@ class FirestoreIntegrationTests(SimpleTestCase):
         self.user.is_superuser = False
         self.user.save()
         self.assertEqual(self.client.get('/admin/').status_code,403)
+
+    def test_expired_lot_is_visible_but_cannot_be_used(self):
+        self.stock.data_validade = timezone.localdate()-timedelta(days=1)
+        self.stock.save()
+        page = self.client.get('/estoque/')
+        self.assertContains(page, 'Vencido — uso bloqueado')
+        self.assertEqual(self.schedule().status_code, 409)
+        self.assertFalse(Agendamento.objects.filter(paciente=self.patient).exists())
+        response = self.client.post('/registrar-dose/', {
+            'paciente':self.patient.pk, 'posto_selecionado':self.posto.pk,
+            'item_estoque':self.stock.pk,
+        }, HTTP_X_OFFLINE_REPLAY='1')
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(Vacina.objects.filter(paciente=self.patient).exists())
+        self.assertEqual(Estoque.objects.get(pk=self.stock.pk).quantidade_atual, 2)
+        self.assertNotIn(self.stock.pk, [item['id'] for item in self.client.get(
+            '/ajax/carregar-vacinas/', {'posto_id':self.posto.pk}).json()])
+        self.assertNotIn(self.stock.pk, [item['id'] for item in self.client.get(
+            '/api/offline/bootstrap/').json()['estoques']])
+        with self.assertRaises(ValidationError):
+            Vacina.objects.create(paciente=self.patient, item_estoque=self.stock)
+
+    def test_booking_cannot_outlive_lot_validity(self):
+        self.stock.data_validade = timezone.localdate()
+        self.stock.save()
+        self.assertEqual(self.schedule().status_code, 409)
+        self.assertFalse(Agendamento.objects.filter(paciente=self.patient).exists())
+        self.assertEqual(Estoque.objects.get(pk=self.stock.pk).quantidade_reservada, 0)
+
+    def test_confirmation_rechecks_lot_validity(self):
+        self.assertEqual(self.schedule().status_code, 200)
+        booking = Agendamento.objects.get(paciente=self.patient)
+        self.stock = Estoque.objects.get(pk=self.stock.pk)
+        self.stock.data_validade = timezone.localdate()-timedelta(days=1)
+        self.stock.save()
+        response = self.client.post(f'/agendamentos/confirmar/{booking.pk}/', {}, HTTP_X_OFFLINE_REPLAY='1')
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Agendamento.objects.get(pk=booking.pk).status, 'pendente')
+        self.assertFalse(Vacina.objects.filter(paciente=self.patient).exists())
+        stock = Estoque.objects.get(pk=self.stock.pk)
+        self.assertEqual((stock.quantidade_atual, stock.quantidade_reservada), (2,1))

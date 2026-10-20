@@ -527,7 +527,10 @@ def busca_postos(request):
     for posto in postos_encontrados:
         
         from .models import Estoque # Importe dentro ou no topo do arquivo
-        posto.estoque_vacinas = Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
+        posto.estoque_vacinas = [
+            item for item in Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
+            if item.disponivel_para_uso
+        ]
 
     return render(request, 'vacinas/postos.html', {
         'postos': postos_encontrados,
@@ -562,7 +565,11 @@ def exportar_dados_csv(request):
 
 def carregar_vacinas_posto(request):
     posto_id = request.GET.get('posto_id')
-    vacinas = Estoque.objects.filter(posto_id=posto_id, quantidade_atual__gt=0).values('id', 'nome_vacina', 'lote')
+    vacinas = [
+        {'id': item.pk, 'nome_vacina': item.nome_vacina, 'lote': item.lote}
+        for item in Estoque.objects.filter(posto_id=posto_id, quantidade_atual__gt=0)
+        if item.disponivel_para_uso
+    ]
     return JsonResponse(list(vacinas), safe=False)
 
 
@@ -571,7 +578,7 @@ def offline_bootstrap(request):
     estoques = []
     for item in Estoque.objects.filter(quantidade_atual__gt=0).select_related('posto').order_by('nome_vacina'):
         disponivel = max(item.quantidade_atual - item.quantidade_reservada, 0)
-        if disponivel <= 0:
+        if not item.disponivel_para_uso:
             continue
         estoques.append({
             'id': item.id,
@@ -634,6 +641,14 @@ def agendar_vacina(request):
         try:
             with transaction.atomic():
                 estoque = Estoque.objects.select_for_update().get(id=item_id)
+
+                if estoque.vencido or estoque.data_validade < timezone.localtime(data_hora).date():
+                    message = 'O lote está vencido ou vence antes da data do agendamento. Escolha outro lote.'
+                    error_response = _sync_error(request, message, status=409)
+                    if error_response:
+                        return error_response
+                    messages.error(request, message)
+                    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
                 
                 if (estoque.quantidade_atual - estoque.quantidade_reservada) > 0:
                     Agendamento.objects.create(
@@ -705,6 +720,13 @@ def confirmar_agendamento(request, agendamento_id):
 
     with transaction.atomic():
         estoque = Estoque.objects.select_for_update().get(pk=agendamento.item_estoque_id)
+        if estoque.vencido:
+            message = 'Este lote venceu. A dose não foi aplicada; cancele o agendamento e escolha outro lote.'
+            error_response = _sync_error(request, message, status=409)
+            if error_response:
+                return error_response
+            messages.error(request, message)
+            return redirect('listar_agendamentos')
         if estoque.quantidade_atual > 0 and estoque.quantidade_reservada > 0:
             estoque.quantidade_reservada -= 1
             estoque.save(update_fields=['quantidade_reservada'])
