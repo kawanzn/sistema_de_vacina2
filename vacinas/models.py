@@ -134,3 +134,20 @@ class OfflineSubmission(models.Model):
 
     def __str__(self):
         return f"{self.client_id} - {self.status}"
+
+
+class AndroidSyncLock(models.Model):
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+
+
+class AndroidDoseLink(models.Model):
+    dose = models.OneToOneField(Vacina, primary_key=True, on_delete=models.CASCADE)
+    appointment = models.OneToOneField(Agendamento, on_delete=models.CASCADE)
+
+
+class AndroidSyncReceipt(models.Model):
+    request_id = models.UUIDField(primary_key=True)
+    request_hash = models.CharField(max_length=64)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)

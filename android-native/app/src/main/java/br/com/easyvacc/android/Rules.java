@@ -58,6 +58,27 @@ public final class Rules {
     public static boolean available(int quantity, int reserved, String expiry, String date) {
         return quantity >= 0 && reserved >= 0 && quantity > reserved && expiry != null && expiry.compareTo(date) >= 0;
     }
+    public static boolean matches(String query,String... fields) {
+        String q=key(query);if(q.isEmpty())return true;
+        StringBuilder all=new StringBuilder();for(String field:fields)all.append(' ').append(key(field));
+        if(all.toString().contains(q))return true;
+        String number=digits(query);
+        if(!number.isEmpty()&&q.matches("[0-9 .()/+-]+"))for(String field:fields)if(digits(field).contains(number))return true;
+        return false;
+    }
+    public static String stockStatus(long qty,long reserved,String expiry,String today) {
+        if(expiry.compareTo(today)<0)return "Vencido";
+        if(qty==0)return "Esgotado";
+        if(qty<=reserved)return "Reservado";
+        return "Disponível";
+    }
+    public static String statusLabel(String value){
+        if("pendente".equals(value))return "Pendente";
+        if("concluido".equals(value))return "Concluído";
+        if("cancelado".equals(value))return "Cancelado";
+        if("ausente".equals(value))return "Não compareceu";
+        return value;
+    }
     public static void appointment(long when, long now, String expiry, String scheduledDay) {
         if (when <= now) throw new IllegalArgumentException("Escolha um horário futuro.");
         if (expiry.compareTo(scheduledDay) < 0) throw new IllegalArgumentException("O lote vence antes do agendamento. Escolha outro lote.");

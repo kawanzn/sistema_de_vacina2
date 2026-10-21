@@ -8,6 +8,16 @@ public final class DomainTests {
     private static void eq(Object a,Object b){if(!java.util.Objects.equals(a,b))throw new AssertionError(a+" != "+b);}
     private static void rejects(Check check){try{check.run();}catch(Exception expected){return;}throw new AssertionError("Era esperada rejeição.");}
     public static void main(String[] args)throws Exception {
+        test("Busca ignora acentos",()->eq(Rules.matches("sao", "São Pedro"),true));
+        test("Busca por CPF formatado",()->eq(Rules.matches("111.444.777-35", "11144477735"),true));
+        test("Busca por nome com dígitos não vira CPF",()->eq(Rules.matches("lote 10", "10"),false));
+        test("Busca sem resultado",()->eq(Rules.matches("teste", "Outro nome"),false));
+        test("Busca vazia mostra registros",()->eq(Rules.matches("", "Unidade"),true));
+        test("Estoque vencido prevalece sobre saldo",()->eq(Rules.stockStatus(10,0,"2026-10-19","2026-10-20"),"Vencido"));
+        test("Estoque totalmente reservado",()->eq(Rules.stockStatus(2,2,"2026-10-21","2026-10-20"),"Reservado"));
+        test("Estoque esgotado",()->eq(Rules.stockStatus(0,0,"2026-10-21","2026-10-20"),"Esgotado"));
+        test("Estoque vigente disponível",()->eq(Rules.stockStatus(2,1,"2026-10-20","2026-10-20"),"Disponível"));
+        test("Não comparecimento tem descrição legível",()->eq(Rules.statusLabel("ausente"),"Não compareceu"));
         test("CTN01 - prévia contém apenas endereço público",()->{ShareFlow f=new ShareFlow();String s=Rules.shareText("Unidade TESTE-001","Rua Fictícia, 10","Centro","28990000");f.preview(s);eq(f.state(),ShareFlow.State.PREVIEW);eq(f.text(),"Unidade TESTE-001\nRua Fictícia, 10\nCentro - CEP 28990000");});
         test("CTN02 - cancelar preserva texto",()->{ShareFlow f=new ShareFlow();f.preview("Endereço fictício");f.cancel();eq(f.state(),ShareFlow.State.CANCELLED);eq(f.text(),"Endereço fictício");});
         test("CTN03 - cancelar seletor não significa sucesso",()->{ShareFlow f=new ShareFlow();f.preview("Endereço");f.launch();f.cancel();eq(f.state(),ShareFlow.State.CANCELLED);});

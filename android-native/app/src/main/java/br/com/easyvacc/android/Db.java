@@ -21,9 +21,10 @@ public final class Db extends SQLiteOpenHelper {
         @Override public String toString() { return s("name"); }
     }
     public Db(Context context) { this(context,"easyvacc_native.db"); }
-    Db(Context context,String name) { super(context,name,null,1); }
+    Db(Context context,String name) { super(context,name,null,2); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE sync_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)");
         db.execSQL("CREATE TABLE account(id INTEGER PRIMARY KEY CHECK(id=1),name TEXT NOT NULL,login TEXT NOT NULL UNIQUE,password TEXT NOT NULL)");
         db.execSQL("CREATE TABLE patients(id INTEGER PRIMARY KEY,name TEXT NOT NULL,name_key TEXT NOT NULL,dob TEXT NOT NULL,cpf TEXT UNIQUE,sus TEXT UNIQUE,email TEXT NOT NULL DEFAULT '',phone TEXT NOT NULL DEFAULT '',address TEXT NOT NULL DEFAULT '',guardian_id INTEGER REFERENCES patients(id),CHECK(guardian_id IS NULL OR guardian_id<>id))");
         db.execSQL("CREATE TABLE posts(id INTEGER PRIMARY KEY,name TEXT NOT NULL,address TEXT NOT NULL,district TEXT NOT NULL,zip TEXT NOT NULL)");
@@ -33,7 +34,10 @@ public final class Db extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE doses(id INTEGER PRIMARY KEY,patient_id INTEGER NOT NULL REFERENCES patients(id),stock_id INTEGER NOT NULL REFERENCES stock(id),post_id INTEGER NOT NULL REFERENCES posts(id),name TEXT NOT NULL,lot TEXT NOT NULL,applied_at INTEGER NOT NULL,appointment_id INTEGER UNIQUE REFERENCES appointments(id),status TEXT NOT NULL DEFAULT 'ativa' CHECK(status IN ('ativa','anulada')),reason TEXT NOT NULL DEFAULT '')");
         db.execSQL("CREATE INDEX patient_doses ON doses(patient_id,applied_at)");
     }
-    @Override public void onUpgrade(SQLiteDatabase db,int old,int current) { throw new IllegalStateException("Migração não disponível para esta versão."); }
+    @Override public void onUpgrade(SQLiteDatabase db,int old,int current) { if(old<2)db.execSQL("CREATE TABLE IF NOT EXISTS sync_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)"); }
+    public String syncValue(String key){List<Row> found=rows("SELECT value FROM sync_state WHERE key=?",key);return found.isEmpty()?"":found.get(0).s("value");}
+    public void syncValue(String key,String value){ContentValues data=new ContentValues();data.put("key",key);data.put("value",value);getWritableDatabase().insertWithOnConflict("sync_state",null,data,SQLiteDatabase.CONFLICT_REPLACE);}
+    private long insertRecord(SQLiteDatabase db,String table,ContentValues values){values.put("id",1000000000000L+(new java.security.SecureRandom().nextLong()&0x000fffffffffffffL));return db.insertOrThrow(table,null,values);}
     public List<Row> rows(String sql, String... args) {
         ArrayList<Row> list=new ArrayList<>();
         try(Cursor c=getReadableDatabase().rawQuery(sql,args)) {
@@ -82,19 +86,19 @@ public final class Db extends SQLiteOpenHelper {
             v.put("guardian_id",guardian);
         } else v.putNull("guardian_id");
         if(id>0) { getWritableDatabase().update("patients",v,"id=?",new String[]{String.valueOf(id)}); return id; }
-        return getWritableDatabase().insertOrThrow("patients",null,v);
+        return insertRecord(getWritableDatabase(),"patients",v);
     }
     public long post(String name,String address,String district,String zip) {
         ContentValues v=new ContentValues();v.put("name",Rules.required(name,"nome da unidade",100));v.put("address",Rules.required(address,"endereço",255));
         v.put("district",Rules.required(district,"bairro",100));String z=Rules.digits(zip);if(z.length()!=8)throw new IllegalArgumentException("O CEP deve ter 8 dígitos.");v.put("zip",z);
-        return getWritableDatabase().insertOrThrow("posts",null,v);
+        return insertRecord(getWritableDatabase(),"posts",v);
     }
     public long stock(String name,String lot,String amount,String expiry,String supplier,long post) {
         row("posts",post);ContentValues v=new ContentValues();v.put("name",Rules.required(name,"nome da vacina",100));v.put("lot",Rules.required(lot,"lote",50));
         v.put("qty",Rules.quantity(amount,true));v.put("reserved",0);String expires=Rules.iso(expiry);
         if(expires.compareTo(Rules.today())<0)throw new IllegalArgumentException("Não cadastre um lote vencido.");
         v.put("expiry",expires);v.put("supplier",Rules.text(supplier));v.put("post_id",post);
-        return getWritableDatabase().insertOrThrow("stock",null,v);
+        return insertRecord(getWritableDatabase(),"stock",v);
     }
     public void addStock(long id,String amount) {
         Row lot=row("stock",id);int n=Rules.quantity(amount,false);
@@ -111,9 +115,15 @@ public final class Db extends SQLiteOpenHelper {
     public List<Row> freeStock() {
         return rows("SELECT s.*,p.name AS post_name FROM stock s JOIN posts p ON p.id=s.post_id WHERE s.qty>s.reserved AND s.expiry>=? ORDER BY s.name,s.expiry",Rules.today());
     }
+    public List<Row> freeStock(long post) {
+        return rows("SELECT s.*,p.name AS post_name FROM stock s JOIN posts p ON p.id=s.post_id WHERE s.post_id=? AND s.qty>s.reserved AND s.expiry>=? ORDER BY s.name,s.expiry",String.valueOf(post),Rules.today());
+    }
+    public List<Row> applications(){
+        return rows("SELECT d.*,p.name AS patient_name,p.cpf,o.name AS post_name FROM doses d JOIN patients p ON p.id=d.patient_id JOIN posts o ON o.id=d.post_id ORDER BY d.applied_at DESC,d.id DESC");
+    }
     private long insertDose(SQLiteDatabase db,long patient,Row lot,Long appointment) {
         ContentValues v=new ContentValues();v.put("patient_id",patient);v.put("stock_id",lot.id());v.put("post_id",lot.n("post_id"));v.put("name",lot.s("name"));v.put("lot",lot.s("lot"));v.put("applied_at",System.currentTimeMillis());
-        if(appointment!=null)v.put("appointment_id",appointment);return db.insertOrThrow("doses",null,v);
+        if(appointment!=null)v.put("appointment_id",appointment);return insertRecord(db,"doses",v);
     }
     public long dose(long patient,long stock) {
         row("patients",patient);SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
@@ -130,7 +140,7 @@ public final class Db extends SQLiteOpenHelper {
             Row lot=row("stock",stock);String day=new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.ROOT).format(new java.util.Date(time));
             Rules.appointment(time,System.currentTimeMillis(),lot.s("expiry"),day);
             if(!Rules.available((int)lot.n("qty"),(int)lot.n("reserved"),lot.s("expiry"),Rules.today()))throw new IllegalArgumentException("Não há doses livres neste lote.");
-            ContentValues a=new ContentValues();a.put("patient_id",patient);a.put("stock_id",stock);a.put("when_at",time);a.put("status","pendente");long id=db.insertOrThrow("appointments",null,a);
+            ContentValues a=new ContentValues();a.put("patient_id",patient);a.put("stock_id",stock);a.put("when_at",time);a.put("status","pendente");long id=insertRecord(db,"appointments",a);
             db.execSQL("UPDATE stock SET reserved=reserved+1 WHERE id=?",new Object[]{stock});db.setTransactionSuccessful();return id;
         } finally {db.endTransaction();}
     }

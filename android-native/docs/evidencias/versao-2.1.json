@@ -1,0 +1,31 @@
+{
+  "data": "2026-10-20",
+  "versao": "2.1.0",
+  "versionCode": 20100,
+  "apk_sha256": "ce8dd7e992d72b691c712da62c8c0018e9127f90146c92c129c4209ae4dc1000",
+  "testes_jvm_aprovados": 45,
+  "testes_django_aprovados": 23,
+  "android_execucao": "pendente: nenhum dispositivo conectado",
+  "sincronizacao_producao": "pendente de localizar e atualizar o projeto que atende o domínio; API atual retorna 404",
+  "fontes_sha256": {
+    "build.gradle": "846b16fbbbcb8b328f32f9b0b47190900c17138722e86561573cba18a446662c",
+    "build.ps1": "f5e817b8e8a717a536bcb681c979b2de238acfa40ce9516c4c5244823190e1a7",
+    "settings.gradle": "f050c2afa476285902036282f5ad3db524c312369ab1e0ec23c73756df672c82",
+    "test-device.ps1": "d4ebf1072a1a22adc5182be980161e5ee69cfc86e7a1b165cd1cdce167974119",
+    "test.ps1": "f6a431001baf93e5be817a7855d7a9f8fab7e1246cd0aa57f9911fae97c276fe",
+    "app\\build.gradle": "cac4671c6f40e5dd56959ada8ace7bf82bb06b469d27530263d9e2856a3ffbd0",
+    "tests\\DomainTests.java": "0102164599451b4efce0af4bca6d832317699b096be8a0f7a5ce5a97db193908",
+    "app\\src\\main\\AndroidManifest.xml": "8c253c3908b998ac2f501ef8b2e2095b58fbc06a2a0c045bfcfad03b5cc9de93",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\Db.java": "caff0d418c81a8d6d70da576ee07b0d920792d0497c67317a68b5fa3eebf10c4",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\MainActivity.java": "f13efda60ee45c615c402471fad20469f17eec99ac3733984272dd2a2a636876",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\Rules.java": "f3e06deb3c722752bec7c00766b69dc419b454cc8e23386581a73ebe61de55ee",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\Secrets.java": "f6479ccee8b7fc0899e4538cf780bd19680c201c0b3c674c823846057094d5ea",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\ShareFlow.java": "865c130dbc5b88dc7689d346a31a68ce09d36717eb1a76ed5eb7b69457664e5f",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\ShareReceiver.java": "dbc6ec352a7533a2cad102372774ac473d91165d4aa484248212ece6d273e0b0",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\SyncEngine.java": "57951282356f4ffcb47c2a7a9be7857a8c9dc11eb31cd9065f9f96d31c803ba5",
+    "app\\src\\main\\java\\br\\com\\easyvacc\\android\\SyncJob.java": "2802e11e87761cf6391cebfbf76046119d360938d1d5ce8c7c0c036b43344009",
+    "app\\src\\main\\res\\values\\styles.xml": "0d7da45b1a0f46d81822f0152d248e33f6855a66b652e17841819293efa87d55",
+    "tests\\android\\AndroidManifest.xml": "b031e8ff5fddf01806ca5600a43b3dbb76d85342f66a85a1a8e49faf7af3d9a6",
+    "tests\\android\\NativeInstrumentation.java": "47f968ba5d0e0d6cde7cecdadab68e7084aac6dcc024e33eb5111ab274965b63"
+  }
+}

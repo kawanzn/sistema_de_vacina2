@@ -2,9 +2,13 @@ from django.contrib import admin
 from django.urls import path
 from vacinas import views 
 from django.contrib.auth import views as auth_views
+from vacinas import android_sync
 
 
 urlpatterns = [
+    path('api/android/status/', android_sync.status, name='android_sync_status'),
+    path('api/android/login/', android_sync.login, name='android_login'),
+    path('api/android/sync/', android_sync.sync, name='android_sync'),
     path('admin/', admin.site.urls),
     path('manifest.webmanifest', views.manifest, name='manifest'),
     path('sw.js', views.service_worker, name='service_worker'),

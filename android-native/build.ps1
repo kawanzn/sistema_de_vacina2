@@ -32,7 +32,7 @@ $manifestXml=[xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot 'app/src/ma
 $manifestXml.DocumentElement.SetAttribute('package','br.com.easyvacc.android')
 $manifestPath=Join-Path $buildPath 'AndroidManifest.xml'
 $manifestXml.Save($manifestPath)
-Run-Checked (Join-Path $toolsPath 'aapt2.exe') @('link','-o',(Join-Path $buildPath 'resources.apk'),'-I',$androidJar,'--manifest',$manifestPath,'--java',$generatedPath,'--version-code','20000','--version-name','2.0.0','--min-sdk-version','23','--target-sdk-version','35',(Join-Path $buildPath 'resources.zip'))
+Run-Checked (Join-Path $toolsPath 'aapt2.exe') @('link','-o',(Join-Path $buildPath 'resources.apk'),'-I',$androidJar,'--manifest',$manifestPath,'--java',$generatedPath,'--version-code','20100','--version-name','2.1.0','--min-sdk-version','23','--target-sdk-version','35',(Join-Path $buildPath 'resources.zip'))
 $sources=Get-ChildItem (Join-Path $PSScriptRoot 'app/src/main/java'),$generatedPath -Recurse -Filter '*.java' | ForEach-Object { '"'+$_.FullName.Replace('\','/')+'"' }
 $sourcesPath=Join-Path $buildPath 'sources.txt'
 [IO.File]::WriteAllLines($sourcesPath,$sources,[Text.UTF8Encoding]::new($false))
@@ -46,7 +46,7 @@ $archive=[IO.Compression.ZipFile]::Open($unsignedPath,[IO.Compression.ZipArchive
 try {foreach($file in Get-ChildItem $dexPath -Filter '*.dex'){[IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$file.FullName,$file.Name,[IO.Compression.CompressionLevel]::Optimal)|Out-Null}}finally{$archive.Dispose()}
 $alignedPath=Join-Path $buildPath 'aligned.apk'
 Run-Checked (Join-Path $toolsPath 'zipalign.exe') @('-f','-p','4',$unsignedPath,$alignedPath)
-$apkPath=Join-Path $OutputDir 'EasyVacc-Android-2.0.0.apk'
+$apkPath=Join-Path $OutputDir 'EasyVacc-Android-2.1.0.apk'
 Run-Checked $javaExe @('-jar',(Join-Path $toolsPath 'lib/apksigner.jar'),'sign','--ks',$SigningStore,'--ks-key-alias','easyvacc','--ks-pass',('file:'+$SigningPasswordFile),'--out',$apkPath,$alignedPath)
 Run-Checked $javaExe @('-jar',(Join-Path $toolsPath 'lib/apksigner.jar'),'verify','--verbose','--print-certs',$apkPath)
 Run-Checked (Join-Path $toolsPath 'zipalign.exe') @('-c','4',$apkPath)
