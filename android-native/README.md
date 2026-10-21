@@ -57,8 +57,8 @@ O histórico da antiga versão web permanece identificado como histórico, sem s
 - Inspeção do DEX para confirmar ausência de referência WebView/TWA e do endereço do site antigo.
 - Um runner de instrumentação cobre banco, reservas, backup e abertura da tela, usando banco de teste separado.
 
-Ainda não houve execução em Android físico ou emulador. O adb do ambiente falhou ao criar sua pasta
-de credenciais e não foi possível obter um ambiente Android acessível. Portanto, navegação, renderização,
+Ainda não houve execução em Android físico ou emulador. O acesso adb foi recuperado, mas a última
+consulta não encontrou aparelho conectado nem emulador instalado. Portanto, navegação, renderização,
 teclado, seletor de arquivos e menu de compartilhamento continuam pendentes de validação no aparelho.
 Os logs e hashes ficam em `docs/evidencias/`. Compilar e assinar não prova funcionamento completo em dispositivo.
 
@@ -82,6 +82,11 @@ adb install -r EasyVacc-Android-Testes.apk
 adb shell am instrument -w br.com.easyvacc.android.tests/br.com.easyvacc.android.NativeInstrumentation
 ```
 O runner usa `instrumentation_test.db`, sem substituir o banco dos registros do aplicativo.
+
+No Windows, `test-device.ps1 -ApkDir 'pasta-dos-dois-apks'` verifica a conexão, instala ambos os APKs
+e executa o runner. Com mais de um aparelho, informe `-Serial`. O script salva data, hash do APK e
+resultado em `build/device-evidence`. Recusa ausência de aparelho e não registra sucesso sem o
+relatório final da instrumentação. Ative a depuração USB e aceite a autorização no celular.
 
 ## Assinatura e próximas versões
 A chave e a senha foram entregues separadamente em um arquivo privado. Não publique esses arquivos no GitHub.
