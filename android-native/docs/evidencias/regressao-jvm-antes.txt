@@ -1,0 +1,8 @@
+Reprodução isolada da implementação anterior de ShareFlow.preview, com a mesma suíte de teste.
+Exception in thread "main" java.lang.AssertionError: Unidade TESTE-001 Rua Fictícia, 10 Centro - CEP 28990000 != Unidade TESTE-001
+Rua Fictícia, 10
+Centro - CEP 28990000
+	at br.com.easyvacc.android.DomainTests.eq(DomainTests.java:8)
+	at br.com.easyvacc.android.DomainTests.lambda$main$0(DomainTests.java:11)
+	at br.com.easyvacc.android.DomainTests.test(DomainTests.java:7)
+	at br.com.easyvacc.android.DomainTests.main(DomainTests.java:11)

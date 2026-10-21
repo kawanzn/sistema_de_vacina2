@@ -1,0 +1,4 @@
+package: name='br.com.easyvacc.android' versionCode='20000' versionName='2.0.0' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'
+sdkVersion:'23'
+targetSdkVersion:'35'
+launchable-activity: name='br.com.easyvacc.android.MainActivity'  label='' icon=''

@@ -1,0 +1,37 @@
+{
+  "data": "2026-10-20",
+  "pacote": "br.com.easyvacc.android",
+  "versao": "2.0.0",
+  "minSdk": 23,
+  "targetSdk": 35,
+  "apk_sha256": "3ec6a339981c24acc6ac644f76a193bc056f4449d714a2ee106c934f97b00226",
+  "verificacoes_dex": {
+    "sem_WebView": true,
+    "sem_TWA": true,
+    "sem_dominio_antigo": true,
+    "classe_nativa": true
+  },
+  "testes_jvm": {
+    "executados": 35,
+    "aprovados": 35
+  },
+  "execucao_android": "Não executada; ambiente sem dispositivo acessível",
+  "fontes_sha256": {
+    "build.gradle": "8ebf0602839be8fd4c06f07a93e45da6b4a04444fa1b38df8b9def9c1b5c8032",
+    "build.ps1": "2abfff5d4a42c26fe23242e4a0fa29b4ad6567ae362ab9b92ce35fc304b01dae",
+    "settings.gradle": "b50a292040703561d368ad2c0287a5575f996c34f30e0abf002f130035f078c6",
+    "test.ps1": "4b0e1f356ddd93244c62a66340f819e75271e5907f3743bb80d2c2183fb14527",
+    "app/build.gradle": "920b46437f1f2cd7b232fb71f6cc1770c647395c828dce90f0e36afd55ea3a7c",
+    "tests/DomainTests.java": "5cc2eb0653083207554188077235c45a58e916686bc6425b4487ecaa7f119a31",
+    "tests/android/AndroidManifest.xml": "873a327eecb42977862dbe2d1b6ca43da657e4e58c32dc3519a1cb065c4d1c09",
+    "tests/android/NativeInstrumentation.java": "4756e2417beec8fd50f2717ba6f62209e7f72fd76743a1d1d6d6f14fdb1908bf",
+    "app/src/main/AndroidManifest.xml": "3b4939e78749ddb3a806bc4c69a3a016f24d69d3659f02a7931f05d20b9b474e",
+    "app/src/main/res/values/styles.xml": "158c408a079c017ee97e9d8355002dd49fa98247078cfbf05069ad49fb0994c1",
+    "app/src/main/java/br/com/easyvacc/android/Db.java": "40d81e5fe331ddff9d2f27e7474b0fc0f389ca085bc292e428ea26ff83ec33ea",
+    "app/src/main/java/br/com/easyvacc/android/MainActivity.java": "d1c663fd57c9be4a73dbb2d25bde9753c077c171b45f35038f3507c4bcddcfb0",
+    "app/src/main/java/br/com/easyvacc/android/Rules.java": "1105b5367cd5145be084ade714bfac2a67af6cf56ab73d8f761fb2bc95f0a201",
+    "app/src/main/java/br/com/easyvacc/android/Secrets.java": "704a66f351f9fd7da1fc9adb09b4d8e0d3628011377956f03c0af854729bf69f",
+    "app/src/main/java/br/com/easyvacc/android/ShareFlow.java": "fe1cd51f86f221ac8586f59e1dd04e1cdab17e9d2246e1fe2520443835d64120",
+    "app/src/main/java/br/com/easyvacc/android/ShareReceiver.java": "0f9aa3d7cc3911ee2627322a6da2963bf6eb30b9d691fac857eec8d85edca6a4"
+  }
+}
