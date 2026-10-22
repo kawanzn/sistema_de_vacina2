@@ -117,9 +117,9 @@ public final class Db extends SQLiteOpenHelper {
         getWritableDatabase().execSQL("UPDATE stock SET qty=qty+? WHERE id=?",new Object[]{n,id});
     }
     public List<Row> posts(String query) {
-        ArrayList<Row> result=new ArrayList<>();String q=Rules.key(query);String z=Rules.digits(query);
+        ArrayList<Row> result=new ArrayList<>();
         for(Row p:rows("SELECT * FROM posts ORDER BY name COLLATE NOCASE"))
-            if(q.isEmpty() || Rules.key(p.s("name")+" "+p.s("district")+" "+p.s("address")).contains(q) || (!z.isEmpty() && Rules.digits(p.s("zip")).contains(z)))result.add(p);
+            if(Rules.matchesPost(query,p.s("name"),p.s("district"),p.s("address"),p.s("zip"),""))result.add(p);
         return result;
     }
     public List<Row> freeStock() {

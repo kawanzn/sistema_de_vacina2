@@ -37,7 +37,11 @@ public final class MainActivity extends Activity {
     private String page="welcome",searchPosts="",searchPatients="",exportText="",shareToken="",shareNotice="";
     private int ids=1000;
     private ShareFlow share=new ShareFlow();
-    private boolean observingSync=false;
+    private boolean observingSync=false,directoryRequested=false,directoryLoading=false;
+    private String directoryNotice="";
+    private LinearLayout directoryList;
+    private Button directoryRefresh;
+    private TextView directoryStatus;
     private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if(!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
     private final SimpleDateFormat timestamp=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     interface Task {void run() throws Exception;}
@@ -200,10 +204,49 @@ public final class MainActivity extends Activity {
         List<Db.Row> children=db.rows("SELECT * FROM patients WHERE guardian_id=? ORDER BY name",String.valueOf(id));if(!children.isEmpty()){gap(body,12);body.addView(text("Dependentes",18,INK,true));for(Db.Row child:children)button(body,child.s("name"),false,()->{citizen=child.id();go("card");});}
     }
     private void posts(){
-        heading("Unidades de saúde","Encontre os postos cadastrados e compartilhe o endereço.");if(staff)button(body,"Cadastrar unidade",true,()->go("postForm"));
-        EditText query=input(body,"Nome, bairro ou CEP",searchPosts,InputType.TYPE_CLASS_TEXT);LinearLayout list=column();button(body,"Buscar unidades",false,()->{searchPosts=value(query);fillPosts(list);});gap(body,18);body.addView(list);fillPosts(list);
+        heading("Postos de Saquarema","Unidades da cidade disponíveis mesmo sem internet.");
+        if(staff)button(body,"Cadastrar unidade",true,()->go("postForm"));
+        PublicDirectory directory=new PublicDirectory(this);
+        String updated=directory.updated();
+        label(updated.isEmpty()?"Lista municipal incluída no aplicativo · conferida em 22/10/2026.":"Catálogo online recebido em "+updated+". Sem internet, a lista salva continua disponível.");
+        directoryStatus=text(directoryNotice,13,MUTED,false);body.addView(directoryStatus);
+        EditText query=input(body,"Nome, bairro, rua ou CEP conhecido",searchPosts,InputType.TYPE_CLASS_TEXT);
+        query.setHint("Ex.: Bacaxá, Jaconé, Boqueirão ou Saquarema");
+        LinearLayout list=column();directoryList=list;
+        button(body,"Buscar unidades",true,()->{searchPosts=value(query);fillPosts(list);});
+        button(body,"Mostrar todos os postos",false,()->{query.setText("");searchPosts="";fillPosts(list);});
+        directoryRefresh=button(body,directoryLoading?"Atualizando lista...":"Atualizar lista pela internet",false,()->refreshDirectory(list));directoryRefresh.setEnabled(!directoryLoading);
+        query.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){}public void onTextChanged(CharSequence t,int start,int before,int count){searchPosts=t.toString();fillPosts(list);}public void afterTextChanged(android.text.Editable e){}});
+        query.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        query.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){searchPosts=value(query);fillPosts(list);return true;}return false;});
+        gap(body,18);body.addView(list);fillPosts(list);
+        if(!directoryRequested){directoryRequested=true;refreshDirectory(list);}
     }
-    private void fillPosts(LinearLayout list){list.removeAllViews();List<Db.Row> posts=db.posts(searchPosts);if(posts.isEmpty())list.addView(text("Nenhuma unidade encontrada. Confira a busca ou peça o cadastro ao profissional.",15,MUTED,false));for(Db.Row p:posts){LinearLayout c=card(list);c.addView(text(p.s("name"),20,INK,true));c.addView(text(p.s("address")+"\n"+p.s("district")+" · CEP "+p.s("zip"),14,MUTED,false));List<Db.Row> available=db.rows("SELECT name,SUM(qty-reserved) AS free FROM stock WHERE post_id=? AND qty>reserved AND expiry>=? GROUP BY name",String.valueOf(p.id()),Rules.today());gap(c,12);if(available.isEmpty())c.addView(text("Sem lotes disponíveis neste aparelho.",13,MUTED,false));for(Db.Row s:available)c.addView(text(s.s("name")+" · "+s.n("free")+" doses livres",13,GREEN,true));button(c,"Compartilhar endereço",false,()->{selectedPost=p.id();share.preview(Rules.shareText(p.s("name"),p.s("address"),p.s("district"),p.s("zip")));shareNotice="";go("share");});}}
+    private void refreshDirectory(LinearLayout list){
+        if(directoryLoading)return;directoryLoading=true;
+        directoryRefresh.setText("Atualizando lista...");directoryRefresh.setEnabled(false);
+        final PublicDirectory directory=new PublicDirectory(this);
+        new Thread(()->{String result;try{directory.refresh();result="Lista atualizada. Os dados públicos ficam disponíveis sem login.";}catch(Exception e){result="Não foi possível atualizar online. Você pode consultar normalmente os postos salvos de Saquarema.";}
+            final String message=result;runOnUiThread(()->{directoryLoading=false;directoryNotice=message;if(!isFinishing()&&!isDestroyed()&&page.equals("posts")&&directoryList!=null&&directoryList.isAttachedToWindow()){directoryRefresh.setText("Atualizar lista pela internet");directoryRefresh.setEnabled(true);directoryStatus.setText(message);fillPosts(directoryList);}});
+        },"easyvacc-public-posts").start();
+    }
+    private void fillPosts(LinearLayout list){
+        list.removeAllViews();List<Db.Row> posts=new PublicDirectory(this).all(db,searchPosts);
+        list.addView(text(posts.size()+" unidade(s) encontrada(s)",14,BLUE,true));gap(list,12);
+        if(posts.isEmpty())list.addView(text("Nenhum resultado para essa busca. Tente apenas o bairro ou toque em Mostrar todos os postos. Alguns CEPs não constam na fonte municipal; nesses casos, busque pelo nome ou bairro.",15,MUTED,false));
+        for(Db.Row p:posts){
+            LinearLayout c=card(list);c.addView(text(p.s("name"),20,INK,true));
+            c.addView(text(p.s("address")+"\n"+p.s("district")+(p.s("city").isEmpty()?"":" · "+p.s("city")+" – RJ")+(p.s("zip").isEmpty()?"":" · CEP "+p.s("zip")),14,MUTED,false));
+            if(!p.s("phone").isEmpty())button(c,"Ligar para a unidade",false,()->{try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+Rules.digits(p.s("phone")))));}catch(ActivityNotFoundException e){throw new IllegalStateException("Este aparelho não possui aplicativo de telefone.");}});
+            List<Db.Row> available=p.s("catalog").equals("true")?Collections.emptyList():db.rows("SELECT name,SUM(qty-reserved) AS free FROM stock WHERE post_id=? AND qty>reserved AND expiry>=? GROUP BY name",String.valueOf(p.id()),Rules.today());
+            gap(c,12);
+            if(available.isEmpty())c.addView(text(p.s("availability").isEmpty()?"Disponibilidade de vacinas não informada no aplicativo. Confirme com a unidade.":"Vacinas informadas na última atualização: "+p.s("availability")+". Confirme a disponibilidade com a unidade.",13,MUTED,false));
+            for(Db.Row vaccine:available)c.addView(text(vaccine.s("name")+" · "+vaccine.n("free")+" doses livres registradas neste aparelho",13,GREEN,true));
+            if(!p.s("note").isEmpty())c.addView(text(p.s("note"),13,MUTED,false));
+            if(!p.s("source").isEmpty())c.addView(text(!p.s("catalog").equals("true")||!p.s("source").startsWith("https://")?"Endereço do cadastro profissional no EasyVacc.":"Fonte: Prefeitura de Saquarema · consulta em "+p.s("verified"),12,MUTED,false));
+            button(c,"Compartilhar endereço",false,()->{selectedPost=p.id();share.preview(Rules.shareText(p.s("name"),p.s("address"),p.s("district")+(p.s("city").isEmpty()?"":" · "+p.s("city")+" – RJ"),p.s("zip")));shareNotice="";go("share");});
+        }
+    }
     private void postForm(){
         heading("Nova unidade","Informe os dados públicos do posto de saúde.");dirty=true;EditText name=field("Nome da unidade *"),address=field("Endereço *"),district=field("Bairro *");EditText zip=input(body,"CEP *","",InputType.TYPE_CLASS_NUMBER);
         button(body,"Salvar unidade",true,()->{db.post(value(name),value(address),value(district),value(zip));toast("Unidade cadastrada.");go("posts");});button(body,"Cancelar",false,()->confirmDiscard("posts"));
@@ -263,7 +306,7 @@ public final class MainActivity extends Activity {
         button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         button(body,"Alterar senha",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.1.1\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.1.2\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{staff=false;citizen=0;go("welcome");});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}

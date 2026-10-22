@@ -53,6 +53,18 @@ public final class DomainTests {
         test("CTN15 - hashes usam sal único",()->eq(Secrets.hash("Ficticia-2026").equals(Secrets.hash("Ficticia-2026")),false));
         test("CTN15 - senha curta rejeitada",()->rejects(()->Secrets.hash("123")));
         test("CTN16 - busca normaliza acentos",()->eq(Rules.key("  São   João "),"sao joao"));
+        test("Busca de posto normaliza acento",()->eq(Rules.matchesPost("bacaxa","ESF Bacaxá","Bacaxá","Rua Alfredo Menezes, 980","","Saquarema"),true));
+        test("Busca combina bairro e cidade",()->eq(Rules.matchesPost("Saquarema RJ Jacone","ESF Jaconé","Jaconé","Rua 97","","Saquarema"),true));
+        test("Busca aceita posto de saúde e UBS como termos genéricos",()->eq(Rules.matchesPost("posto de saude bacaxa","ESF Bacaxá","Bacaxá","Rua Alfredo","","Saquarema"),true));
+        test("Busca ignora ordem dos termos",()->eq(Rules.matchesPost("980 Alfredo","ESF Bacaxá","Bacaxá","Rua Alfredo Menezes, 980","","Saquarema"),true));
+        test("Busca Rio d'Areia normaliza apóstrofo",()->eq(Rules.matchesPost("rio dareia","ESF Rio D’Areia","Rio D’Areia","Estrada Latino Melo","","Saquarema"),true));
+        test("Busca CEP com máscara",()->eq(Rules.matchesPost("28990-000","Posto","Centro","Rua","28990000",""),true));
+        test("CEP desconhecido não inventa resultado",()->eq(Rules.matchesPost("28990000","ESF Bacaxá","Bacaxá","Rua","","Saquarema"),false));
+        test("Bairro desconhecido não retorna toda a cidade",()->eq(Rules.matchesPost("inexistente","ESF Bacaxá","Bacaxá","Rua","","Saquarema"),false));
+        test("Diretório cobre 21 unidades",()->eq(SaquaremaDirectory.UNITS.length,21));
+        for(String[] unit:SaquaremaDirectory.UNITS){final String[] u=unit;
+            test("Unidade municipal pesquisável offline: "+u[0],()->{eq(Rules.matchesPost(u[1],u[0],u[1],u[2],u[4],u[5]),true);eq(Rules.matchesPost("Saquarema",u[0],u[1],u[2],u[4],u[5]),true);});
+        }
         System.out.println("TOTAL: "+passed+" verificações aprovadas; 0 falhas. Ambiente: JVM; não é execução Android.");
     }
 }

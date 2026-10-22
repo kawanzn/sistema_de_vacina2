@@ -1,0 +1,76 @@
+APROVADO Busca ignora acentos
+APROVADO Busca por CPF formatado
+APROVADO Busca por nome com dígitos não vira CPF
+APROVADO Busca sem resultado
+APROVADO Busca vazia mostra registros
+APROVADO Estoque vencido prevalece sobre saldo
+APROVADO Estoque totalmente reservado
+APROVADO Estoque esgotado
+APROVADO Estoque vigente disponível
+APROVADO Não comparecimento tem descrição legível
+APROVADO CTN01 - prévia contém apenas endereço público
+APROVADO CTN02 - cancelar preserva texto
+APROVADO CTN03 - cancelar seletor não significa sucesso
+APROVADO CTN04 - seleção do destino distingue entrega
+APROVADO CTN05 - falha permite recuperação
+APROVADO CTN06 - bloqueia lançamento duplicado
+APROVADO CTN07 - preserva estado após recriação
+APROVADO CTN08 - quantidade zero não é dose disponível
+APROVADO CTN08 - reserva total bloqueia dose livre
+APROVADO CTN08 - lote livre permite dose
+APROVADO CTN09 - validade ontem bloqueia
+APROVADO CTN09 - validade hoje é aceita
+APROVADO CTN09 - validade amanhã é aceita
+APROVADO CTN10 - agendamento passado bloqueado
+APROVADO CTN10 - horário igual ao atual bloqueado
+APROVADO CTN10 - horário futuro aceito
+APROVADO CTN10 - lote vence antes do atendimento
+APROVADO CTN11 - CPF normalizado e validado
+APROVADO CTN11 - CPF repetido rejeitado
+APROVADO CTN11 - CPF com dígito incorreto rejeitado
+APROVADO CTN11 - CPF ausente permitido
+APROVADO CTN12 - data impossível rejeitada
+APROVADO CTN12 - ano bissexto válido
+APROVADO CTN12 - dados após data rejeitados
+APROVADO CTN13 - quantidade negativa rejeitada
+APROVADO CTN13 - quantidade fracionária rejeitada
+APROVADO CTN13 - limite superior aceito
+APROVADO CTN13 - acima do limite rejeitado
+APROVADO CTN14 - CSV impede fórmula
+APROVADO CTN14 - CSV protege fórmula com quebra de linha
+APROVADO CTN14 - CSV escapa aspas
+APROVADO CTN15 - senha não é armazenada em texto
+APROVADO CTN15 - hashes usam sal único
+APROVADO CTN15 - senha curta rejeitada
+APROVADO CTN16 - busca normaliza acentos
+APROVADO Busca de posto normaliza acento
+APROVADO Busca combina bairro e cidade
+APROVADO Busca aceita posto de saúde e UBS como termos genéricos
+APROVADO Busca ignora ordem dos termos
+APROVADO Busca Rio d'Areia normaliza apóstrofo
+APROVADO Busca CEP com máscara
+APROVADO CEP desconhecido não inventa resultado
+APROVADO Bairro desconhecido não retorna toda a cidade
+APROVADO Diretório cobre 21 unidades
+APROVADO Unidade municipal pesquisável offline: ESF Água Branca
+APROVADO Unidade municipal pesquisável offline: ESF Bacaxá
+APROVADO Unidade municipal pesquisável offline: ESF Barra Nova
+APROVADO Unidade municipal pesquisável offline: ESF Barreira
+APROVADO Unidade municipal pesquisável offline: ESF Bicuíba
+APROVADO Unidade municipal pesquisável offline: ESF Bonsucesso
+APROVADO Unidade municipal pesquisável offline: ESF Boqueirão
+APROVADO Unidade municipal pesquisável offline: ESF Guarani
+APROVADO Unidade municipal pesquisável offline: ESF Jaconé
+APROVADO Unidade municipal pesquisável offline: ESF Jardim Ipitangas
+APROVADO Unidade municipal pesquisável offline: ESF Madressilva
+APROVADO Unidade municipal pesquisável offline: ESF Mato Grosso
+APROVADO Unidade municipal pesquisável offline: ESF Mombaça
+APROVADO Unidade municipal pesquisável offline: ESF Palmital
+APROVADO Unidade municipal pesquisável offline: ESF Rio D’Areia
+APROVADO Unidade municipal pesquisável offline: ESF Rio Mole
+APROVADO Unidade municipal pesquisável offline: ESF Rio Seco
+APROVADO Unidade municipal pesquisável offline: ESF Sampaio Corrêa
+APROVADO Unidade municipal pesquisável offline: ESF Saquarema
+APROVADO Unidade municipal pesquisável offline: ESF Vilatur
+APROVADO Unidade municipal pesquisável offline: UBS Engenho Grande
+TOTAL: 75 verificações aprovadas; 0 falhas. Ambiente: JVM; não é execução Android.

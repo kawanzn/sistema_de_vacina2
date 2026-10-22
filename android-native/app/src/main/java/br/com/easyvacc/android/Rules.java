@@ -14,6 +14,25 @@ public final class Rules {
     public static String key(String value) {
         return Normalizer.normalize(text(value), Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
+    public static String postKey(String value) {
+        return key(value).replaceAll("[^a-z0-9]+", " ").trim();
+    }
+    public static String postIdentity(String name) {
+        return postKey(name).replaceAll("^(esf|psf|ubs) +", "").replace("correa", "correia");
+    }
+    public static boolean matchesPost(String query,String name,String district,String address,String zip,String city) {
+        String q=postKey(query), all=postKey(name+" "+district+" "+address+" "+city+" RJ");
+        if(q.isEmpty())return true;
+        // Numeric queries are CEPs only when they contain five or more digits.
+        if(q.matches("[0-9 ]+")&&digits(q).length()>=5)return !digits(zip).isEmpty()&&digits(zip).startsWith(digits(q));
+        all=all.replace("d areia","dareia").replace("correa","correia");
+        q=q.replace("d areia","dareia").replace("correa","correia");
+        for(String word:q.split(" +")) {
+            if(word.matches("posto|postos|unidade|unidades|saude|esf|psf|ubs|de|da|do|das|dos|em"))continue;
+            if(!all.contains(word))return false;
+        }
+        return true;
+    }
     public static String required(String value, String label, int max) {
         String v = text(value);
         if (v.isEmpty()) throw new IllegalArgumentException("Preencha " + label + ".");

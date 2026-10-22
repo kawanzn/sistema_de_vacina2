@@ -1,0 +1,10 @@
+{
+  "versionName": "2.1.2",
+  "versionCode": 20102,
+  "sha256": "1e85334f3a0735771a37684242588a60d29df589cc578b44658d66bedab6f1c6",
+  "jvm": 75,
+  "django": 27,
+  "postos": 21,
+  "android_executado": false,
+  "observacao": "Nenhum Android conectado. Não houve execução da interface nesta entrega."
+}

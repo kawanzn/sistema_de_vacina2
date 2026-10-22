@@ -1,12 +1,12 @@
-# EasyVacc Android 2.1.1
+# EasyVacc Android 2.1.2
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20101, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20102, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.1.1.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.1.2.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
@@ -17,6 +17,15 @@ O servidor novo está publicado em https://easyvacc-android-servidor.vercel.app,
 persistente Neon no plano gratuito. A conta profissional foi entregue em arquivo privado.
 O servidor começa sem os cadastros antigos. Em Mais > Sincronização, use o endereço acima
 e as credenciais desse arquivo. Cada aparelho precisa autenticar uma conta profissional ativa.
+
+## Busca de postos de Saquarema
+
+A consulta inclui 21 unidades do diretório municipal, mesmo numa instalação nova, sem conta
+profissional e sem internet. Digite bairro, nome, rua ou Saquarema; acentos e ordem das palavras
+não impedem os resultados. Use Mostrar todos os postos para limpar o filtro. A atualização
+online não altera os dados clínicos ou a fila de sincronização. Disponibilidade não informada
+não significa posto sem vacina. CEPs ausentes na fonte municipal não são inventados.
+Veja [fontes, detalhes e limites](docs/postos-saquarema-2.1.2.md).
 
 ## Funções
 
@@ -71,8 +80,8 @@ Detalhes em `docs/sincronizacao-android.md` na raiz. Não publique credenciais n
 
 ## Verificações e limites
 
-- 45 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
-- Suíte Django com as regressões web e testes da API. Logs em `docs/evidencias/`.
+- 75 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
+- 27 testes Django, incluindo as regressões web, sincronização e catálogo público de postos. Logs em `docs/evidencias/`.
 - Compilação do APK e do runner Android, alinhamento e assinatura v1/v2/v3.
 - Inspeção do manifesto e DEX para confirmar código nativo, sem WebView/TWA.
 

@@ -1,13 +1,18 @@
 # EasyVacc Android
 
-[Baixar o APK Android 2.1.1](releases/EasyVacc-Android-2.1.1.apk).
+[Baixar o APK Android 2.1.2](releases/EasyVacc-Android-2.1.2.apk).
 
 Telas nativas para Servidor Público e Portal do Cidadão, cadastros, caderneta, estoque,
 aplicações, agenda, relatórios, assistente de uso e backup. Funciona com dados locais sem internet.
-A versão 2.1.1 acrescenta a integração HTTPS para compartilhar o banco do site entre aparelhos.
+A versão 2.1.2 acrescenta a integração HTTPS para compartilhar o banco do site entre aparelhos.
 
 Instale por cima da versão Android 2.0.0 para preservar os dados. O pacote e a assinatura permanecem
-os mesmos. O arquivo `EasyVacc.apk` da raiz também corresponde à versão 2.1.1.
+os mesmos. O arquivo `EasyVacc.apk` da raiz também corresponde à versão 2.1.2.
+
+**Busca de postos corrigida:** diretório de 21 unidades de Saquarema incluído no APK,
+sem login e disponível offline. Pesquisa por nome, bairro, rua e cidade; atualização pública
+pela internet. Consulte [fontes e limites](android-native/docs/postos-saquarema-2.1.2.md).
+Não há estoque municipal fictício; confirme a vacina com a unidade.
 
 **Sincronização:** servidor publicado em https://easyvacc-android-servidor.vercel.app, com
 banco persistente Neon gratuito. Configure Mais > Sincronização com as credenciais entregues
