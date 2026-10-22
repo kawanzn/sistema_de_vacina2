@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.easyvacc.android'
         minSdk 23
         targetSdk 35
-        versionCode 20103
-        versionName '2.1.3'
+        versionCode 20104
+        versionName '2.1.4'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 }

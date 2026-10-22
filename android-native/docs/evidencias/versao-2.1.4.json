@@ -1,0 +1,12 @@
+{
+  "versionName": "2.1.4",
+  "versionCode": 20104,
+  "sha256": "11a314ec5e006ce7682b85d531c8e831fe127aba0f5462e9e3b462dc98611e5a",
+  "android_executado": false,
+  "alteracoes": [
+    "Removida ligação",
+    "Seleção da unidade para agendar",
+    "Seleção preservada durante identificação",
+    "Reservas restritas ao estoque da unidade escolhida"
+  ]
+}

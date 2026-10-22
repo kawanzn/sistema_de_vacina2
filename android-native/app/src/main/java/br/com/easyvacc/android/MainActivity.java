@@ -39,6 +39,7 @@ public final class MainActivity extends Activity {
     private ShareFlow share=new ShareFlow();
     private boolean observingSync=false,directoryRequested=false,directoryLoading=false;
     private String directoryNotice="";
+    private String bookingPostName="",bookingPostAddress="";
     private LinearLayout directoryList;
     private Button directoryRefresh;
     private TextView directoryStatus;
@@ -48,12 +49,12 @@ public final class MainActivity extends Activity {
     private final SimpleDateFormat timestamp=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     interface Task {void run() throws Exception;}
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved);db=new Db(this);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(Color.WHITE);
+        super.onCreate(saved);if(saved!=null){bookingPostName=saved.getString("bookingPostName","");bookingPostAddress=saved.getString("bookingPostAddress","");}db=new Db(this);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         if(saved!=null){staff=saved.getBoolean("staff",false);citizen=saved.getLong("citizen",0);rootCitizen=saved.getLong("rootCitizen",0);editingPatient=saved.getLong("editingPatient",0);page=saved.getString("page","welcome");identifyTarget=saved.getString("identifyTarget","card");searchPatients=saved.getString("searchPatients","");searchStock=saved.getString("searchStock","");stockFilter=saved.getString("stockFilter","Todos");searchAgenda=saved.getString("searchAgenda","");agendaFilter=saved.getString("agendaFilter","Todos");searchReport=saved.getString("searchReport","");searchPosts=saved.getString("searchPosts","");shareToken=saved.getString("shareToken","");selectedPost=saved.getLong("post",0);share.restore(saved.getString("shareText",""),saved.getString("shareState","READY"));if(page.equals("share")&&!share.text().isEmpty())page="share";}
         render();
     }
-    @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putBoolean("staff",staff);out.putLong("citizen",citizen);out.putLong("rootCitizen",rootCitizen);out.putLong("editingPatient",editingPatient);out.putString("page",page);out.putString("identifyTarget",identifyTarget);out.putString("searchPatients",searchPatients);out.putString("searchStock",searchStock);out.putString("stockFilter",stockFilter);out.putString("searchAgenda",searchAgenda);out.putString("agendaFilter",agendaFilter);out.putString("searchReport",searchReport);out.putString("searchPosts",searchPosts);out.putString("shareToken",shareToken);out.putLong("post",selectedPost);out.putString("shareText",share.text());out.putString("shareState",share.state().name());}
+    @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("bookingPostName",bookingPostName);out.putString("bookingPostAddress",bookingPostAddress);out.putBoolean("staff",staff);out.putLong("citizen",citizen);out.putLong("rootCitizen",rootCitizen);out.putLong("editingPatient",editingPatient);out.putString("page",page);out.putString("identifyTarget",identifyTarget);out.putString("searchPatients",searchPatients);out.putString("searchStock",searchStock);out.putString("stockFilter",stockFilter);out.putString("searchAgenda",searchAgenda);out.putString("agendaFilter",agendaFilter);out.putString("searchReport",searchReport);out.putString("searchPosts",searchPosts);out.putString("shareToken",shareToken);out.putLong("post",selectedPost);out.putString("shareText",share.text());out.putString("shareState",share.state().name());}
     @Override protected void onResume(){super.onResume();if(!observingSync){android.content.IntentFilter filter=new android.content.IntentFilter("br.com.easyvacc.android.SYNC_UPDATED");if(Build.VERSION.SDK_INT>=33)registerReceiver(syncReceiver,filter,RECEIVER_NOT_EXPORTED);else registerReceiver(syncReceiver,filter);observingSync=true;}readShareResult();SyncJob.schedule(this);}
     @Override protected void onPause(){if(observingSync){unregisterReceiver(syncReceiver);observingSync=false;}super.onPause();}
     @Override protected void onDestroy(){cepHandler.removeCallbacksAndMessages(null);if(db!=null)db.close();super.onDestroy();}
@@ -137,12 +138,14 @@ public final class MainActivity extends Activity {
     private final class LotPicker {
         final List<Db.Row> lots=new ArrayList<>();final Spinner lot;
         LotPicker(){
-            List<Db.Row> posts=db.posts("");Spinner post=choice(body,"1. Unidade de saúde *",posts,"");lot=choice(body,"2. Vacina / lote *",lots,"stock");
+            List<Db.Row> posts=db.posts("");
+            if(page.equals("schedule")&&!bookingPostName.isEmpty()){List<Db.Row> chosen=new ArrayList<>();for(Db.Row unit:posts)if(Rules.postIdentity(unit.s("name")).equals(Rules.postIdentity(bookingPostName)))chosen.add(unit);posts=chosen;}
+            final List<Db.Row> units=posts;Spinner post=choice(body,"1. Unidade de saúde *",units,"");lot=choice(body,"2. Vacina / lote *",lots,"stock");
             post.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?>p){}public void onItemSelected(AdapterView<?>p,View v,int position,long id){
-                lots.clear();if(position>0)lots.addAll(db.freeStock(posts.get(position-1).id()));
+                lots.clear();if(position>0)lots.addAll(db.freeStock(units.get(position-1).id()));
                 ArrayList<String> labels=new ArrayList<>();labels.add(position==0?"Escolha a unidade primeiro":lots.isEmpty()?"Sem doses livres nesta unidade":"Selecione a vacina...");for(Db.Row r:lots)labels.add(r.s("name")+" · "+r.s("lot")+" · validade "+Rules.showDate(r.s("expiry"))+" · "+(r.n("qty")-r.n("reserved"))+" livres");
                 ArrayAdapter<String>a=new ArrayAdapter<>(MainActivity.this,android.R.layout.simple_spinner_item,labels);a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);lot.setAdapter(a);
-            }});
+            }});if(page.equals("schedule")&&!bookingPostName.isEmpty()&&units.size()==1){post.setSelection(1);post.setEnabled(false);}
         }
         long selected(){return MainActivity.this.selected(lot,lots);}
     }
@@ -253,7 +256,7 @@ public final class MainActivity extends Activity {
         for(Db.Row p:posts){
             LinearLayout c=card(list);c.addView(text(p.s("name"),20,INK,true));
             c.addView(text(p.s("address")+"\n"+p.s("district")+(p.s("city").isEmpty()?"":" · "+p.s("city")+" – RJ")+(p.s("zip").isEmpty()?"":" · CEP "+p.s("zip")),14,MUTED,false));
-            if(!p.s("phone").isEmpty())button(c,"Ligar para a unidade",false,()->{try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+Rules.digits(p.s("phone")))));}catch(ActivityNotFoundException e){throw new IllegalStateException("Este aparelho não possui aplicativo de telefone.");}});
+            button(c,"Selecionar e agendar",true,()->{bookingPostName=p.s("name");bookingPostAddress=p.s("address");go("schedule");});
             List<Db.Row> available=p.s("catalog").equals("true")?Collections.emptyList():db.rows("SELECT name,SUM(qty-reserved) AS free FROM stock WHERE post_id=? AND qty>reserved AND expiry>=? GROUP BY name",String.valueOf(p.id()),Rules.today());
             gap(c,12);
             if(available.isEmpty())c.addView(text(p.s("availability").isEmpty()?"Disponibilidade de vacinas não informada no aplicativo. Confirme com a unidade.":"Vacinas informadas na última atualização: "+p.s("availability")+". Confirme a disponibilidade com a unidade.",13,MUTED,false));
@@ -300,11 +303,12 @@ public final class MainActivity extends Activity {
         button(body,"Conferir aplicação",true,()->{long patient=selected(person,patients),lot=picker.selected();Db.Row p=db.row("patients",patient),stock=db.row("stock",lot);new AlertDialog.Builder(this).setTitle("Confirmar aplicação agora?").setMessage(p.s("name")+"\nNascimento: "+Rules.showDate(p.s("dob"))+"\n\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n\nRegistra a aplicação e baixa uma dose do lote.").setNegativeButton("Voltar",null).setPositiveButton("Confirmar aplicação",(dialog,w)->{try{db.dose(patient,lot);toast("Aplicação registrada. Sincronização agendada.");citizen=patient;go("card");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard("home"));
     }
     private void scheduleForm(){
-        heading("Agendar Nova Dose","Escolha unidade, vacina e horário. A reserva depende de estoque cadastrado no EasyVacc.");
+        heading("Agendar Nova Dose","Escolha unidade, vacina e horário.");
+        if(!bookingPostName.isEmpty()){LinearLayout chosen=card(body);chosen.addView(text("UNIDADE SELECIONADA",12,BLUE,true));chosen.addView(text(bookingPostName,20,INK,true));chosen.addView(text(bookingPostAddress,14,MUTED,false));button(chosen,"Trocar unidade",false,()->go("posts"));}
         if(!staff&&citizen<=0){
             label("Para reservar uma dose, identifique primeiro uma pessoa cadastrada neste aparelho. A lista pública de postos não contém pacientes ou o estoque real das unidades.");
             button(body,"Identificar pessoa para agendar",true,()->{identifyTarget="schedule";go("identify");});
-            button(body,"Consultar postos e telefones",false,()->go("posts"));
+            button(body,"Escolher unidade",false,()->go("posts"));
             button(body,"Acesso profissional / configurar cadastros",false,()->go("login"));
             button(body,"Voltar ao portal",false,()->go("portal"));return;
         }
@@ -314,13 +318,18 @@ public final class MainActivity extends Activity {
             label("Não há pessoa cadastrada para agendar. Cadastre a pessoa ou receba os dados pela sincronização.");
             if(staff){button(body,"Cadastrar pessoa",true,()->patientForm(0));button(body,"Sincronizar cadastros",false,()->go("sync"));}return;
         }
+        if(!bookingPostName.isEmpty()){
+            boolean availableHere=false;
+            for(Db.Row unit:db.posts(""))if(Rules.postIdentity(unit.s("name")).equals(Rules.postIdentity(bookingPostName))&&!db.freeStock(unit.id()).isEmpty())availableHere=true;
+            if(!availableHere){label("A unidade selecionada ainda não possui lote vigente com dose livre cadastrado no EasyVacc. A reserva só poderá ser confirmada depois que o profissional informar o estoque desta unidade.");if(staff){button(body,"Ver estoque",true,()->go("stock"));button(body,"Sincronizar estoque",false,()->go("sync"));}button(body,"Escolher outra unidade",false,()->go("posts"));return;}
+        }
         if(db.freeStock().isEmpty()){
             label("A tela de agendamento está disponível, mas não há lote vigente com doses livres registrado neste aparelho. Isso não indica falta de vacina na rede municipal.");
             if(staff){button(body,"Cadastrar estoque real",true,()->go("stockForm"));button(body,"Sincronizar estoque do servidor",false,()->go("sync"));}
-            button(body,"Consultar postos e telefones",false,()->go("posts"));button(body,"Voltar",false,()->go(staff?"home":"portal"));return;
+            button(body,"Escolher unidade",false,()->go("posts"));button(body,"Voltar",false,()->go(staff?"home":"portal"));return;
         }
         Spinner person=choice(body,"Identificação do cidadão *",patients,"");if(!staff){person.setSelection(1);person.setEnabled(false);}LotPicker picker=new LotPicker();EditText when=dateField(body,"3. Data e horário *","",true);
-        button(body,"Conferir agendamento",true,()->{long patient=selected(person,patients),lot=picker.selected();String at=value(when);Db.Row stock=db.row("stock",lot);long time=Rules.date(at,true).getTime();Rules.appointment(time,System.currentTimeMillis(),stock.s("expiry"),new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(time)));new AlertDialog.Builder(this).setTitle("Confirmar reserva?").setMessage(db.row("patients",patient).s("name")+"\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n"+at).setNegativeButton("Voltar e conferir",null).setPositiveButton("Confirmar agendamento",(d,w)->{try{db.schedule(patient,lot,at);toast("Agendamento salvo. A reserva será enviada na sincronização.");go("agenda");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard(staff?"home":"portal"));
+        button(body,"Conferir agendamento",true,()->{long patient=selected(person,patients),lot=picker.selected();String at=value(when);Db.Row stock=db.row("stock",lot);long time=Rules.date(at,true).getTime();Rules.appointment(time,System.currentTimeMillis(),stock.s("expiry"),new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(time)));new AlertDialog.Builder(this).setTitle("Confirmar reserva?").setMessage(db.row("patients",patient).s("name")+"\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n"+at).setNegativeButton("Voltar e conferir",null).setPositiveButton("Confirmar agendamento",(d,w)->{try{db.schedule(patient,lot,at);toast("Agendamento salvo. A reserva será enviada na sincronização.");bookingPostName="";bookingPostAddress="";go("agenda");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard(staff?"home":"portal"));
     }
     private void agenda(boolean history){
         if(!staff&&citizen<=0){identifyTarget=history?"history":"agenda";go("identify");return;}heading(history?"Histórico de agendamentos":"Agendamentos",history?"Atendimentos concluídos e cancelamentos.":"Confira os próximos atendimentos.");
@@ -338,7 +347,7 @@ public final class MainActivity extends Activity {
         button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         button(body,"Alterar senha",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.1.3\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.1.4\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{staff=false;citizen=0;go("welcome");});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}

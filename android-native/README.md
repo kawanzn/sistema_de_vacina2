@@ -1,12 +1,12 @@
-# EasyVacc Android 2.1.3
+# EasyVacc Android 2.1.4
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20103, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20104, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.1.3.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.1.4.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
@@ -110,7 +110,7 @@ A chave privada foi entregue separadamente; preserve-a para atualizações futur
 Pedro Marcos Quintanilha de Oliveira Nunes — 202312595. Kawan Lopes Mangia — 202312633.
 Universidade de Vassouras.
 
-## CEP e agendamento na versão 2.1.3
+## CEP e agendamento na versão 2.1.4
 
 O CEP residencial localiza a cidade e prioriza postos que citam o bairro. O CEP 28994-160
 (Condado de Bacaxá, Saquarema) funciona offline desde a instalação; outros CEPs ficam salvos
@@ -119,3 +119,14 @@ os cadastros necessários. Confirmar reserva exige paciente e estoque real no Ea
 pública de unidades não informa a agenda ou o estoque oficial da Prefeitura.
 
 Detalhes e limites: [CEP e agendamento](docs/cep-agendamento-2.1.3.md).
+
+## Selecionar a unidade e agendar — 2.1.4
+
+O botão Ligar para a unidade foi removido. Cada posto tem Selecionar e agendar. O nome e
+o endereço escolhidos aparecem no agendamento e a seleção é preservada durante a identificação
+e a recriação da tela. Trocar unidade retorna à busca. Quando existe cadastro profissional
+correspondente, a unidade fica pré-selecionada e somente seus lotes podem ser reservados.
+Sem estoque registrado naquela unidade, o aplicativo informa o impedimento e não usa doses
+de outro posto. A reserva continua dependendo de paciente e estoque real no EasyVacc, sem
+integração com a agenda oficial municipal. Compilação e assinatura verificadas; execução
+da interface em Android continua pendente.
