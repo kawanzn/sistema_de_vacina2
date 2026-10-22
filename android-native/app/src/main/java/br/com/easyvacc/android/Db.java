@@ -71,6 +71,11 @@ public final class Db extends SQLiteOpenHelper {
         ContentValues v=new ContentValues();v.put("password",Secrets.hash(next)); getWritableDatabase().update("account",v,"id=1",null);
     }
     public long patient(long id,String name,String dob,String cpf,String sus,String email,String phone,String address,long guardian) {
+        SQLiteDatabase transaction=getWritableDatabase();transaction.beginTransaction();
+        try {long saved=savePatient(id,name,dob,cpf,sus,email,phone,address,guardian);transaction.setTransactionSuccessful();return saved;}
+        finally {transaction.endTransaction();}
+    }
+    private long savePatient(long id,String name,String dob,String cpf,String sus,String email,String phone,String address,long guardian) {
         ContentValues v=new ContentValues(); String n=Rules.required(name,"nome",200);
         v.put("name",n);v.put("name_key",Rules.key(n)); String born=Rules.iso(dob);
         if(born.compareTo(Rules.today())>0 || born.compareTo("1900-01-01")<0) throw new IllegalArgumentException("Confira a data de nascimento (1900 até hoje).");
@@ -85,7 +90,7 @@ public final class Db extends SQLiteOpenHelper {
             if(id>0 && !rows("SELECT id FROM patients WHERE guardian_id=?",String.valueOf(id)).isEmpty()) throw new IllegalArgumentException("Uma pessoa com dependentes não pode ser vinculada como dependente.");
             v.put("guardian_id",guardian);
         } else v.putNull("guardian_id");
-        if(id>0) { getWritableDatabase().update("patients",v,"id=?",new String[]{String.valueOf(id)}); return id; }
+        if(id>0) { if(getWritableDatabase().update("patients",v,"id=?",new String[]{String.valueOf(id)})!=1)throw new IllegalArgumentException("O cadastro não está mais disponível. Atualize a lista antes de editar."); return id; }
         return insertRecord(getWritableDatabase(),"patients",v);
     }
     public long post(String name,String address,String district,String zip) {
@@ -101,6 +106,11 @@ public final class Db extends SQLiteOpenHelper {
         return insertRecord(getWritableDatabase(),"stock",v);
     }
     public void addStock(long id,String amount) {
+        SQLiteDatabase transaction=getWritableDatabase();transaction.beginTransaction();
+        try {addStockInTransaction(id,amount);transaction.setTransactionSuccessful();}
+        finally {transaction.endTransaction();}
+    }
+    private void addStockInTransaction(long id,String amount) {
         Row lot=row("stock",id);int n=Rules.quantity(amount,false);
         if(lot.n("qty")+n>1000000)throw new IllegalArgumentException("O lote excederia 1.000.000 de doses.");
         if(lot.s("expiry").compareTo(Rules.today())<0)throw new IllegalArgumentException("Lote vencido. Cadastre um novo lote vigente.");
@@ -109,7 +119,7 @@ public final class Db extends SQLiteOpenHelper {
     public List<Row> posts(String query) {
         ArrayList<Row> result=new ArrayList<>();String q=Rules.key(query);String z=Rules.digits(query);
         for(Row p:rows("SELECT * FROM posts ORDER BY name COLLATE NOCASE"))
-            if(q.isEmpty() || Rules.key(p.s("name")+" "+p.s("district")+" "+p.s("address")).contains(q) || (!z.isEmpty() && p.s("zip").contains(z)))result.add(p);
+            if(q.isEmpty() || Rules.key(p.s("name")+" "+p.s("district")+" "+p.s("address")).contains(q) || (!z.isEmpty() && Rules.digits(p.s("zip")).contains(z)))result.add(p);
         return result;
     }
     public List<Row> freeStock() {
@@ -176,6 +186,11 @@ public final class Db extends SQLiteOpenHelper {
         } return b.toString();
     }
     public String backup() throws Exception {
+        SQLiteDatabase transaction=getWritableDatabase();transaction.beginTransaction();
+        try {String result=backupInTransaction();transaction.setTransactionSuccessful();return result;}
+        finally {transaction.endTransaction();}
+    }
+    private String backupInTransaction() throws Exception {
         JSONObject result=new JSONObject();result.put("format","EasyVaccNative");result.put("version",1);result.put("created_at",System.currentTimeMillis());
         for(String table:new String[]{"posts","patients","stock","appointments","doses"}) {
             JSONArray values=new JSONArray();for(Row r:rows("SELECT * FROM "+table)) {JSONObject o=new JSONObject();for(Map.Entry<String,String> e:r.entrySet())o.put(e.getKey(),e.getValue()==null?JSONObject.NULL:e.getValue());values.put(o);}result.put(table,values);
@@ -210,11 +225,12 @@ public final class Db extends SQLiteOpenHelper {
                 for(int i=0;i<array.length();i++){
                     JSONObject r=array.getJSONObject(i);ContentValues values=new ContentValues();
                     for(String col:columns[t]){if(!r.has(col))throw new IllegalArgumentException("Backup incompleto: "+tables[t]+"/"+col);if(r.isNull(col)||col.equals("guardian_id"))values.putNull(col);else values.put(col,r.getString(col));}
-                    if(t==0){Rules.required(r.getString("name"),"nome da unidade",100);Rules.required(r.getString("address"),"endereço",255);if(Rules.digits(r.getString("zip")).length()!=8)throw new IllegalArgumentException("CEP inválido no backup.");}
+                    if(t==0){Rules.required(r.getString("name"),"nome da unidade",100);Rules.required(r.getString("address"),"endereço",255);String zip=Rules.digits(r.getString("zip"));if(zip.length()!=8)throw new IllegalArgumentException("CEP inválido no backup.");values.put("zip",zip);}
                     if(t==1){Rules.required(r.getString("name"),"nome da pessoa",200);String born=r.getString("dob");if(!Rules.iso(Rules.showDate(born)).equals(born)||born.compareTo(Rules.today())>0||born.compareTo("1900-01-01")<0)throw new IllegalArgumentException("Nascimento inválido no backup.");values.put("name_key",Rules.key(r.getString("name")));if(!r.isNull("cpf"))Rules.cpf(r.getString("cpf"));if(!r.isNull("sus")&&Rules.digits(r.getString("sus")).length()!=15)throw new IllegalArgumentException("SUS inválido no backup.");}
                     if(t==2){Rules.required(r.getString("name"),"vacina",100);Rules.required(r.getString("lot"),"lote",50);Rules.quantity(r.getString("qty"),true);Rules.quantity(r.getString("reserved"),true);String expiry=r.getString("expiry");if(!Rules.iso(Rules.showDate(expiry)).equals(expiry))throw new IllegalArgumentException("Validade inválida no backup.");}
                     if(t==3&&Long.parseLong(r.getString("when_at"))<=0)throw new IllegalArgumentException("Data de agendamento inválida no backup.");
                     if(t==4&&Long.parseLong(r.getString("applied_at"))<=0)throw new IllegalArgumentException("Data de aplicação inválida no backup.");
+                    if(t==1&&!r.isNull("cpf")){String cpf=Rules.cpf(r.getString("cpf"));if(cpf.isEmpty())values.putNull("cpf");else values.put("cpf",cpf);}
                     db.insertOrThrow(tables[t],null,values);
                 }
             }

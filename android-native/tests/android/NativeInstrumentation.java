@@ -30,6 +30,7 @@ public final class NativeInstrumentation extends Instrumentation {
             long lot=db.stock("Vacina TESTE","LOTE-001","5","31/12/2099","Fictício",post);
             check("Paciente e dependente persistidos",()->{eq(db.count("patients"),2);eq(db.row("patients",child).n("guardian_id"),patient);});
             check("CPF duplicado rejeitado",()->rejects(()->db.patient(0,"Outra pessoa fictícia","01/01/2000","11144477735","","","","",0)));
+            check("Edição de cadastro inexistente não anuncia salvamento",()->rejects(()->db.patient(999,"Pessoa removida","01/01/2000","","","","","",0)));
             check("Consulta por identificação e nascimento",()->eq(db.identify("111.444.777-35","01/01/2000").id(),patient));
             check("Nascimento divergente rejeitado",()->rejects(()->db.identify("11144477735","02/01/2000")));
             check("Bairro e CEP formatado",()->{eq(db.posts("centro").size(),1);eq(db.posts("28990-000").size(),1);eq(db.posts("inexistente").size(),0);});
@@ -46,6 +47,7 @@ public final class NativeInstrumentation extends Instrumentation {
             check("Lote totalmente reservado não permite dose livre",()->{db.getWritableDatabase().execSQL("UPDATE stock SET reserved=qty WHERE id=?",new Object[]{lot});rejects(()->db.dose(patient,lot));eq(db.row("stock",lot).n("qty"),3);db.getWritableDatabase().execSQL("UPDATE stock SET reserved=0 WHERE id=?",new Object[]{lot});});
             check("Lote vencido bloqueia aplicação",()->{db.getWritableDatabase().execSQL("UPDATE stock SET expiry='2000-01-01' WHERE id=?",new Object[]{lot});rejects(()->db.dose(patient,lot));eq(db.row("stock",lot).n("qty"),3);db.getWritableDatabase().execSQL("UPDATE stock SET expiry='2099-12-31' WHERE id=?",new Object[]{lot});});
             String backup=db.backup();
+            check("Restaurar CPF e CEP formatados mantém consulta e busca",()->{JSONObject formatted=new JSONObject(backup);formatted.getJSONArray("posts").getJSONObject(0).put("zip","28990-000");for(int i=0;i<formatted.getJSONArray("patients").length();i++){JSONObject p=formatted.getJSONArray("patients").getJSONObject(i);if(p.getLong("id")==patient)p.put("cpf","111.444.777-35");}db.restore(formatted.toString());eq(db.identify("11144477735","01/01/2000").id(),patient);eq(db.posts("28990000").size(),1);db.restore(backup);});
             check("Backup e restauração preservam vínculos e login",()->{db.restore(backup);eq(db.count("patients"),2);eq(db.doses(patient).size(),2);eq(db.row("patients",child).n("guardian_id"),patient);if(!db.authenticate("teste","Ficticia-2026"))throw new AssertionError();});
             check("Backup inválido não destrói registros",()->{JSONObject corrupt=new JSONObject(backup);corrupt.getJSONArray("stock").getJSONObject(0).put("qty","-1");rejects(()->db.restore(corrupt.toString()));eq(db.count("patients"),2);eq(db.row("stock",lot).n("qty"),3);});
             check("Relatório CSV contém histórico",()->{String csv=db.report();if(!csv.startsWith("\ufeffPaciente;")||!csv.contains("LOTE-001"))throw new AssertionError();});

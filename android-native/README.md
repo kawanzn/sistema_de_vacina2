@@ -1,22 +1,22 @@
-# EasyVacc Android 2.1.0
+# EasyVacc Android 2.1.1
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20100, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20101, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.1.0.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.1.1.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
 4. Confira Sincronizar agora. Somente após uma resposta aceita os dados são apresentados como
    sincronizados. Sem conexão, os registros e a requisição pendente ficam preservados.
 
-O servidor precisa ter a integração Android publicada e as migrações aplicadas. Publicar no GitHub
-não comprova que o domínio foi atualizado. Até isso ocorrer, o aplicativo funciona com dados locais
-e informa a indisponibilidade da integração. Não há download público de pacientes: cada aparelho
-que recebe a base precisa da configuração de uma conta profissional ativa.
+O servidor novo está publicado em https://easyvacc-android-servidor.vercel.app, com banco
+persistente Neon no plano gratuito. A conta profissional foi entregue em arquivo privado.
+O servidor começa sem os cadastros antigos. Em Mais > Sincronização, use o endereço acima
+e as credenciais desse arquivo. Cada aparelho precisa autenticar uma conta profissional ativa.
 
 ## Funções
 
@@ -76,8 +76,10 @@ Detalhes em `docs/sincronizacao-android.md` na raiz. Não publique credenciais n
 - Compilação do APK e do runner Android, alinhamento e assinatura v1/v2/v3.
 - Inspeção do manifesto e DEX para confirmar código nativo, sem WebView/TWA.
 
-Ainda não houve execução em aparelho: navegação, seletores, retorno à conexão e sincronização entre
-dois celulares e servidor publicado precisam de teste. Compilar não comprova esses fluxos. A planilha
+O servidor publicado passou em 16 verificações HTTPS, com clientes simulando a sincronização,
+conflitos e repetição de tentativas. Os dados fictícios foram removidos. Ainda não houve execução
+em Android: o emulador não iniciou e nenhum aparelho foi detectado. Interface, seletores e retorno
+à conexão no celular continuam pendentes. Compilar não comprova esses fluxos. A planilha
 e documentos da versão 2.0.0 ficam como histórico; o plano adicional está em `docs/plano-2.1.md`.
 
 ## Compilar

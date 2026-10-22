@@ -13,7 +13,7 @@ if($Serial){if($devices -notcontains $Serial){throw 'Aparelho indicado indispon�
 elseif($devices.Count -eq 1){$Serial=$devices[0]}
 elseif($devices.Count -eq 0){throw 'Nenhum Android conectado. Conecte por USB, ative a depuração USB e aceite a autorização no aparelho.'}
 else{throw 'Há mais de um Android. Selecione um com -Serial.'}
-$main=Join-Path $ApkDir 'EasyVacc-Android-2.1.0.apk'
+$main=Join-Path $ApkDir 'EasyVacc-Android-2.1.1.apk'
 $tests=Join-Path $ApkDir 'EasyVacc-Android-Testes.apk'
 foreach($file in @($main,$tests)){if(!(Test-Path -LiteralPath $file)){throw "APK ausente: $file. Compile com -BuildDeviceTests."}}
 New-Item -ItemType Directory -Path $EvidenceDir -Force | Out-Null

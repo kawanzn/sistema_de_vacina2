@@ -1,0 +1,72 @@
+{
+  "data": "2026-10-21",
+  "servidor": "https://easyvacc-android-servidor.vercel.app",
+  "testes": [
+    {
+      "teste": "API HTTPS pronta",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Autenticação profissional no servidor publicado",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Receber base pelo HTTPS",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Cadastros feitos offline recebidos pelo servidor",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Repetição da tentativa não duplica os cadastros",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Dose offline registrada com uma única baixa",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Dois aparelhos combinam alterações independentes",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Entrada de estoque sincronizada",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Conflito de estoque é recusado sem sobrescrever",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Agendamento reserva a dose no servidor",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Confirmação e repetição não descontam estoque duas vezes",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Caderneta web lê as doses recebidas da API Android",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Login web profissional funciona",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Relatório CSV web inclui registros da sincronização",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Receber base pelo HTTPS",
+      "resultado": "aprovado"
+    },
+    {
+      "teste": "Base final sem os dados fictícios da validação",
+      "resultado": "aprovado"
+    }
+  ],
+  "registros_ficticios_removidos": true,
+  "android_fisico": "não executado por este teste HTTPS"
+}

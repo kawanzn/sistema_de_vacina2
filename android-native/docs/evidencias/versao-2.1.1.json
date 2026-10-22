@@ -1,0 +1,10 @@
+{
+  "versionName": "2.1.1",
+  "versionCode": 20101,
+  "sha256": "9a6c5d9dbf5f2e76270acae370a4175fba5b9b12d9c0e867d051533c59c6eeba",
+  "servidor": "https://easyvacc-android-servidor.vercel.app",
+  "jvm": 45,
+  "https_servidor": 16,
+  "android_executado": false,
+  "limite": "Emulador não iniciou; nenhum dispositivo conectado. Testes HTTPS usam clientes simulados."
+}
