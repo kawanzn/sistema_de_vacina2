@@ -60,10 +60,15 @@ public final class NativeInstrumentation extends Instrumentation {
             check("Merge recusa duas alterações incompatíveis no mesmo lote",()->{JSONObject local=new JSONObject(base.toString()),remote=new JSONObject(base.toString());local.getJSONArray("stock").getJSONObject(0).put("qty","2");remote.getJSONArray("stock").getJSONObject(0).put("qty","1");rejects(()->SyncEngine.merge(base,local,remote));});
             Activity main=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
             check("Tela inicial é nativa e abre sem site",()->{if(!hasText(main.getWindow().getDecorView(),"EasyVacc"))throw new AssertionError("Marca não encontrada.");});
+            check("CEP residencial 28994160 encontra postos sem internet",()->{PublicDirectory directory=new PublicDirectory(getTargetContext());java.util.List<Db.Row> units=directory.all(db,"28994160");if(units.size()<21||!Rules.key(units.get(0).s("name")).contains("bacaxa"))throw new AssertionError("Região de Bacaxá não localizada.");});
+            runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Entrar no portal"));waitForIdleSync();
+            runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Agendar nova dose"));waitForIdleSync();
+            check("Botão do portal abre tela própria de agendamento",()->{if(!hasText(main.getWindow().getDecorView(),"Agendar Nova Dose"))throw new AssertionError("Agendamento não abriu.");});
             runOnMainSync(main::finish);
             report.append("TOTAL: ").append(count).append(" verificações Android aprovadas.\n");result.putString("stream",report.toString());finish(Activity.RESULT_OK,result);
         }catch(Throwable error){report.append("FALHA: ").append(error.toString()).append('\n');result.putString("stream",report.toString());finish(Activity.RESULT_CANCELED,result);}
         finally{if(db!=null)db.close();getTargetContext().deleteDatabase("instrumentation_test.db");}
     }
     private boolean hasText(View view,String value){if(view instanceof TextView&&((TextView)view).getText().toString().contains(value))return true;if(view instanceof ViewGroup){ViewGroup g=(ViewGroup)view;for(int i=0;i<g.getChildCount();i++)if(hasText(g.getChildAt(i),value))return true;}return false;}
+    private boolean clickText(View view,String value){if(view instanceof android.widget.Button&&((TextView)view).getText().toString().equals(value)){view.performClick();return true;}if(view instanceof ViewGroup){ViewGroup g=(ViewGroup)view;for(int i=0;i<g.getChildCount();i++)if(clickText(g.getChildAt(i),value))return true;}return false;}
 }

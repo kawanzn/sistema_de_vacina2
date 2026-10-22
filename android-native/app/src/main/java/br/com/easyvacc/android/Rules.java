@@ -14,6 +14,13 @@ public final class Rules {
     public static String key(String value) {
         return Normalizer.normalize(text(value), Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
+    public static boolean fullCep(String query){return text(query).matches("[0-9 .-]+")&&digits(query).length()==8;}
+    public static int regionRank(String neighborhood,String unit){
+        String region=postKey(neighborhood),target=postKey(unit);
+        if(region.isEmpty())return 1;
+        for(String word:region.split(" +"))if(word.length()>3&&target.contains(word))return 0;
+        return 1;
+    }
     public static String postKey(String value) {
         return key(value).replaceAll("[^a-z0-9]+", " ").trim();
     }

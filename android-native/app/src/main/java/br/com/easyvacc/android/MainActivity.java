@@ -42,6 +42,8 @@ public final class MainActivity extends Activity {
     private LinearLayout directoryList;
     private Button directoryRefresh;
     private TextView directoryStatus;
+    private final android.os.Handler cepHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    private String cepRequested="";
     private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if(!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
     private final SimpleDateFormat timestamp=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     interface Task {void run() throws Exception;}
@@ -54,7 +56,7 @@ public final class MainActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putBoolean("staff",staff);out.putLong("citizen",citizen);out.putLong("rootCitizen",rootCitizen);out.putLong("editingPatient",editingPatient);out.putString("page",page);out.putString("identifyTarget",identifyTarget);out.putString("searchPatients",searchPatients);out.putString("searchStock",searchStock);out.putString("stockFilter",stockFilter);out.putString("searchAgenda",searchAgenda);out.putString("agendaFilter",agendaFilter);out.putString("searchReport",searchReport);out.putString("searchPosts",searchPosts);out.putString("shareToken",shareToken);out.putLong("post",selectedPost);out.putString("shareText",share.text());out.putString("shareState",share.state().name());}
     @Override protected void onResume(){super.onResume();if(!observingSync){android.content.IntentFilter filter=new android.content.IntentFilter("br.com.easyvacc.android.SYNC_UPDATED");if(Build.VERSION.SDK_INT>=33)registerReceiver(syncReceiver,filter,RECEIVER_NOT_EXPORTED);else registerReceiver(syncReceiver,filter);observingSync=true;}readShareResult();SyncJob.schedule(this);}
     @Override protected void onPause(){if(observingSync){unregisterReceiver(syncReceiver);observingSync=false;}super.onPause();}
-    @Override protected void onDestroy(){if(db!=null)db.close();super.onDestroy();}
+    @Override protected void onDestroy(){cepHandler.removeCallbacksAndMessages(null);if(db!=null)db.close();super.onDestroy();}
     private void readShareResult(){
         SharedPreferences prefs=getSharedPreferences("share_result",MODE_PRIVATE);
         if(!shareToken.isEmpty()&&shareToken.equals(prefs.getString("token",""))){
@@ -83,8 +85,9 @@ public final class MainActivity extends Activity {
     private void go(String next){dirty=false;page=next;render();}
     private boolean privatePage(){return Arrays.asList("home","patients","patientForm","dose","stock","stockForm","postForm","more","password","reports","sync").contains(page);}
     private void render(){
+        if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty()){citizen=0;rootCitizen=0;}
         if(!staff&&privatePage())page="login";
-        if(!staff&&citizen<=0&&Arrays.asList("card","schedule","agenda","history").contains(page))page="identify";
+        if(!staff&&citizen<=0&&Arrays.asList("card","agenda","history").contains(page)){identifyTarget=page;page="identify";}
         ids=1000;root=column();root.setBackgroundColor(BG);
         root.setOnApplyWindowInsetsListener((v,insets)->{root.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(dp(22),dp(12),dp(16),dp(12));
@@ -124,7 +127,7 @@ public final class MainActivity extends Activity {
     private void portal(){
         heading("Portal do Cidadão","Caderneta digital, unidades de saúde e próximos atendimentos.");
         LinearLayout hero=card(body);hero.setBackground(bg(GREEN,20));hero.addView(text("Cuidar ficou mais simples.",25,Color.WHITE,true));gap(hero,10);hero.addView(text("Escolha abaixo o serviço que deseja acessar.",15,Color.WHITE,false));
-        button(body,"Consultar caderneta",true,()->identifyFor("card"));button(body,"Agendar nova dose",false,()->identifyFor("schedule"));button(body,"Meus agendamentos",false,()->identifyFor("agenda"));button(body,"Buscar postos e vacinas disponíveis",false,()->go("posts"));button(body,"Conversar com o assistente",false,()->go("help"));button(body,"Trocar para acesso profissional",false,()->go("login"));
+        button(body,"Consultar caderneta",true,()->identifyFor("card"));button(body,"Agendar nova dose",false,()->go("schedule"));button(body,"Meus agendamentos",false,()->identifyFor("agenda"));button(body,"Buscar postos e vacinas disponíveis",false,()->go("posts"));button(body,"Conversar com o assistente",false,()->go("help"));button(body,"Trocar para acesso profissional",false,()->go("login"));
         label(new SyncEngine(this).status());
     }
     private void identifyFor(String target){identifyTarget=target;if(citizen>0)go(target);else go("identify");}
@@ -210,17 +213,27 @@ public final class MainActivity extends Activity {
         String updated=directory.updated();
         label(updated.isEmpty()?"Lista municipal incluída no aplicativo · conferida em 22/10/2026.":"Catálogo online recebido em "+updated+". Sem internet, a lista salva continua disponível.");
         directoryStatus=text(directoryNotice,13,MUTED,false);body.addView(directoryStatus);
-        EditText query=input(body,"Nome, bairro, rua ou CEP conhecido",searchPosts,InputType.TYPE_CLASS_TEXT);
+        EditText query=input(body,"Seu CEP, nome, bairro ou rua",searchPosts,InputType.TYPE_CLASS_TEXT);
         query.setHint("Ex.: Bacaxá, Jaconé, Boqueirão ou Saquarema");
         LinearLayout list=column();directoryList=list;
-        button(body,"Buscar unidades",true,()->{searchPosts=value(query);fillPosts(list);});
+        button(body,"Buscar unidades",true,()->{searchPosts=value(query);searchPostsNow(list);});
         button(body,"Mostrar todos os postos",false,()->{query.setText("");searchPosts="";fillPosts(list);});
         directoryRefresh=button(body,directoryLoading?"Atualizando lista...":"Atualizar lista pela internet",false,()->refreshDirectory(list));directoryRefresh.setEnabled(!directoryLoading);
-        query.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){}public void onTextChanged(CharSequence t,int start,int before,int count){searchPosts=t.toString();fillPosts(list);}public void afterTextChanged(android.text.Editable e){}});
+        query.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){}public void onTextChanged(CharSequence t,int start,int before,int count){searchPosts=t.toString();fillPosts(list);cepHandler.removeCallbacksAndMessages(null);if(Rules.fullCep(searchPosts))cepHandler.postDelayed(()->searchPostsNow(list),500);}public void afterTextChanged(android.text.Editable e){}});
         query.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
-        query.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){searchPosts=value(query);fillPosts(list);return true;}return false;});
+        query.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){searchPosts=value(query);searchPostsNow(list);return true;}return false;});
         gap(body,18);body.addView(list);fillPosts(list);
         if(!directoryRequested){directoryRequested=true;refreshDirectory(list);}
+    }
+    private void searchPostsNow(LinearLayout list){
+        if(isFinishing()||isDestroyed()||!page.equals("posts"))return;
+        fillPosts(list);if(!Rules.fullCep(searchPosts))return;
+        String cep=Rules.digits(searchPosts);CepLookup lookup=new CepLookup(this);
+        if(lookup.saved(cep)!=null){directoryStatus.setText("Região do CEP localizada. Consulta disponível sem internet.");fillPosts(list);return;}
+        if(cep.equals(cepRequested))return;cepRequested=cep;directoryStatus.setText("Consultando a região do CEP...");
+        new Thread(()->{String error="";try{lookup.resolve(cep);}catch(Exception e){error=e.getMessage()==null?"Não foi possível consultar o CEP. Busque pelo bairro.":e.getMessage();}
+            final String message=error;runOnUiThread(()->{if(cep.equals(cepRequested))cepRequested="";if(!isFinishing()&&!isDestroyed()&&page.equals("posts")&&Rules.digits(searchPosts).equals(cep)){fillPosts(directoryList);directoryStatus.setText(message.isEmpty()?"Região do CEP localizada e salva para uso sem internet.":message);}});
+        },"easyvacc-cep").start();
     }
     private void refreshDirectory(LinearLayout list){
         if(directoryLoading)return;directoryLoading=true;
@@ -232,6 +245,9 @@ public final class MainActivity extends Activity {
     }
     private void fillPosts(LinearLayout list){
         list.removeAllViews();List<Db.Row> posts=new PublicDirectory(this).all(db,searchPosts);
+        org.json.JSONObject region=Rules.fullCep(searchPosts)?new CepLookup(this).saved(searchPosts):null;
+        if(region!=null){list.addView(text("CEP "+Rules.digits(searchPosts)+" · "+region.optString("logradouro")+"\n"+region.optString("bairro")+" · "+region.optString("localidade")+" – "+region.optString("uf"),15,INK,true));list.addView(text("Postos da cidade, com os que citam o bairro primeiro. A lista não calcula distância nem define sua unidade de referência.",13,MUTED,false));gap(list,12);}
+        else if(Rules.fullCep(searchPosts))list.addView(text("Para localizar a região deste CEP pela primeira vez, conecte à internet e toque em Buscar unidades. Depois a consulta fica salva para uso offline.",13,MUTED,false));
         list.addView(text(posts.size()+" unidade(s) encontrada(s)",14,BLUE,true));gap(list,12);
         if(posts.isEmpty())list.addView(text("Nenhum resultado para essa busca. Tente apenas o bairro ou toque em Mostrar todos os postos. Alguns CEPs não constam na fonte municipal; nesses casos, busque pelo nome ou bairro.",15,MUTED,false));
         for(Db.Row p:posts){
@@ -284,9 +300,25 @@ public final class MainActivity extends Activity {
         button(body,"Conferir aplicação",true,()->{long patient=selected(person,patients),lot=picker.selected();Db.Row p=db.row("patients",patient),stock=db.row("stock",lot);new AlertDialog.Builder(this).setTitle("Confirmar aplicação agora?").setMessage(p.s("name")+"\nNascimento: "+Rules.showDate(p.s("dob"))+"\n\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n\nRegistra a aplicação e baixa uma dose do lote.").setNegativeButton("Voltar",null).setPositiveButton("Confirmar aplicação",(dialog,w)->{try{db.dose(patient,lot);toast("Aplicação registrada. Sincronização agendada.");citizen=patient;go("card");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard("home"));
     }
     private void scheduleForm(){
-        if(!staff&&citizen<=0){identifyTarget="schedule";go("identify");return;}heading("Agendar Nova Dose","Escolha unidade, vacina e horário. A dose será reservada.");dirty=true;
+        heading("Agendar Nova Dose","Escolha unidade, vacina e horário. A reserva depende de estoque cadastrado no EasyVacc.");
+        if(!staff&&citizen<=0){
+            label("Para reservar uma dose, identifique primeiro uma pessoa cadastrada neste aparelho. A lista pública de postos não contém pacientes ou o estoque real das unidades.");
+            button(body,"Identificar pessoa para agendar",true,()->{identifyTarget="schedule";go("identify");});
+            button(body,"Consultar postos e telefones",false,()->go("posts"));
+            button(body,"Acesso profissional / configurar cadastros",false,()->go("login"));
+            button(body,"Voltar ao portal",false,()->go("portal"));return;
+        }
+        dirty=true;
         List<Db.Row> patients=staff?db.rows("SELECT * FROM patients ORDER BY name"):Collections.singletonList(db.row("patients",citizen));
-        if(patients.isEmpty()||db.freeStock().isEmpty()){label("Nenhum lote vigente com dose livre disponível. Sincronize ou procure o profissional responsável.");button(body,"Voltar",false,()->go(staff?"home":"portal"));return;}
+        if(patients.isEmpty()){
+            label("Não há pessoa cadastrada para agendar. Cadastre a pessoa ou receba os dados pela sincronização.");
+            if(staff){button(body,"Cadastrar pessoa",true,()->patientForm(0));button(body,"Sincronizar cadastros",false,()->go("sync"));}return;
+        }
+        if(db.freeStock().isEmpty()){
+            label("A tela de agendamento está disponível, mas não há lote vigente com doses livres registrado neste aparelho. Isso não indica falta de vacina na rede municipal.");
+            if(staff){button(body,"Cadastrar estoque real",true,()->go("stockForm"));button(body,"Sincronizar estoque do servidor",false,()->go("sync"));}
+            button(body,"Consultar postos e telefones",false,()->go("posts"));button(body,"Voltar",false,()->go(staff?"home":"portal"));return;
+        }
         Spinner person=choice(body,"Identificação do cidadão *",patients,"");if(!staff){person.setSelection(1);person.setEnabled(false);}LotPicker picker=new LotPicker();EditText when=dateField(body,"3. Data e horário *","",true);
         button(body,"Conferir agendamento",true,()->{long patient=selected(person,patients),lot=picker.selected();String at=value(when);Db.Row stock=db.row("stock",lot);long time=Rules.date(at,true).getTime();Rules.appointment(time,System.currentTimeMillis(),stock.s("expiry"),new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(time)));new AlertDialog.Builder(this).setTitle("Confirmar reserva?").setMessage(db.row("patients",patient).s("name")+"\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n"+at).setNegativeButton("Voltar e conferir",null).setPositiveButton("Confirmar agendamento",(d,w)->{try{db.schedule(patient,lot,at);toast("Agendamento salvo. A reserva será enviada na sincronização.");go("agenda");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard(staff?"home":"portal"));
     }
@@ -306,7 +338,7 @@ public final class MainActivity extends Activity {
         button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         button(body,"Alterar senha",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.1.2\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.1.3\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{staff=false;citizen=0;go("welcome");});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}

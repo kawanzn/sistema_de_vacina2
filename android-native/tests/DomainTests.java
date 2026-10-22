@@ -65,6 +65,12 @@ public final class DomainTests {
         for(String[] unit:SaquaremaDirectory.UNITS){final String[] u=unit;
             test("Unidade municipal pesquisável offline: "+u[0],()->{eq(Rules.matchesPost(u[1],u[0],u[1],u[2],u[4],u[5]),true);eq(Rules.matchesPost("Saquarema",u[0],u[1],u[2],u[4],u[5]),true);});
         }
+        test("CEP residencial sem máscara é reconhecido",()->eq(Rules.fullCep("28994160"),true));
+        test("CEP residencial com máscara é reconhecido",()->eq(Rules.fullCep("28994-160"),true));
+        test("CEP incompleto não dispara consulta",()->eq(Rules.fullCep("2899416"),false));
+        test("Rua com dígitos não dispara consulta de CEP",()->eq(Rules.fullCep("Rua 28994160"),false));
+        test("Condado de Bacaxá prioriza posto de Bacaxá",()->eq(Rules.regionRank("Condado de Bacaxá (Bacaxá)","ESF Bacaxá Bacaxá"),0));
+        test("Outros bairros não são chamados de próximos",()->eq(Rules.regionRank("Condado de Bacaxá (Bacaxá)","ESF Jaconé Jaconé"),1));
         System.out.println("TOTAL: "+passed+" verificações aprovadas; 0 falhas. Ambiente: JVM; não é execução Android.");
     }
 }

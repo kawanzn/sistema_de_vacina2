@@ -1,13 +1,13 @@
 # EasyVacc Android
 
-[Baixar o APK Android 2.1.2](releases/EasyVacc-Android-2.1.2.apk).
+[Baixar o APK Android 2.1.3](releases/EasyVacc-Android-2.1.3.apk).
 
 Telas nativas para Servidor Público e Portal do Cidadão, cadastros, caderneta, estoque,
 aplicações, agenda, relatórios, assistente de uso e backup. Funciona com dados locais sem internet.
-A versão 2.1.2 acrescenta a integração HTTPS para compartilhar o banco do site entre aparelhos.
+A versão 2.1.3 acrescenta a integração HTTPS para compartilhar o banco do site entre aparelhos.
 
 Instale por cima da versão Android 2.0.0 para preservar os dados. O pacote e a assinatura permanecem
-os mesmos. O arquivo `EasyVacc.apk` da raiz também corresponde à versão 2.1.2.
+os mesmos. O arquivo `EasyVacc.apk` da raiz também corresponde à versão 2.1.3.
 
 **Busca de postos corrigida:** diretório de 21 unidades de Saquarema incluído no APK,
 sem login e disponível offline. Pesquisa por nome, bairro, rua e cidade; atualização pública
@@ -28,3 +28,13 @@ Compilação e assinatura verificadas. Testes de regras JVM e API Django foram e
 O servidor publicado passou em 16 verificações HTTPS. Ainda falta validar a interface e o
 retorno à conexão em Android físico/emulador; nenhum dispositivo foi detectado nesta entrega. A pasta `android-native` contém o projeto Android; `core` e `vacinas` contêm o servidor
 compartilhado com a versão web. Nenhuma tela do APK é WebView.
+
+## CEP e agendamento na versão 2.1.3
+
+O CEP residencial localiza a cidade e prioriza postos que citam o bairro. O CEP 28994-160
+(Condado de Bacaxá, Saquarema) funciona offline desde a instalação; outros CEPs ficam salvos
+após a primeira consulta com internet. O botão de agendamento abre sua própria tela e explica
+os cadastros necessários. Confirmar reserva exige paciente e estoque real no EasyVacc; a lista
+pública de unidades não informa a agenda ou o estoque oficial da Prefeitura.
+
+Detalhes e limites: [CEP e agendamento](android-native/docs/cep-agendamento-2.1.3.md).

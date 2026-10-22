@@ -1,12 +1,12 @@
-# EasyVacc Android 2.1.2
+# EasyVacc Android 2.1.3
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20102, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20103, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.1.2.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.1.3.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
@@ -80,7 +80,7 @@ Detalhes em `docs/sincronizacao-android.md` na raiz. Não publique credenciais n
 
 ## Verificações e limites
 
-- 75 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
+- 81 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
 - 27 testes Django, incluindo as regressões web, sincronização e catálogo público de postos. Logs em `docs/evidencias/`.
 - Compilação do APK e do runner Android, alinhamento e assinatura v1/v2/v3.
 - Inspeção do manifesto e DEX para confirmar código nativo, sem WebView/TWA.
@@ -109,3 +109,13 @@ A chave privada foi entregue separadamente; preserve-a para atualizações futur
 
 Pedro Marcos Quintanilha de Oliveira Nunes — 202312595. Kawan Lopes Mangia — 202312633.
 Universidade de Vassouras.
+
+## CEP e agendamento na versão 2.1.3
+
+O CEP residencial localiza a cidade e prioriza postos que citam o bairro. O CEP 28994-160
+(Condado de Bacaxá, Saquarema) funciona offline desde a instalação; outros CEPs ficam salvos
+após a primeira consulta com internet. O botão de agendamento abre sua própria tela e explica
+os cadastros necessários. Confirmar reserva exige paciente e estoque real no EasyVacc; a lista
+pública de unidades não informa a agenda ou o estoque oficial da Prefeitura.
+
+Detalhes e limites: [CEP e agendamento](docs/cep-agendamento-2.1.3.md).

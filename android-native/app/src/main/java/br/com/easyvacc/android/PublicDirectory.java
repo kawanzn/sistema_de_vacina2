@@ -10,8 +10,10 @@ import java.util.*;
 /** Read-only public directory. Never inserts remote data into clinical sync tables. */
 public final class PublicDirectory {
     private final SharedPreferences cache;
+    private final Context context;
     private final String server;
     public PublicDirectory(Context context){
+        this.context=context.getApplicationContext();
         server=new SyncEngine(context).server();
         cache=context.getSharedPreferences("public-directory",Context.MODE_PRIVATE);
     }
@@ -32,8 +34,14 @@ public final class PublicDirectory {
             combined.put(key,row);
         }
         List<Db.Row> result=new ArrayList<>();
-        for(Db.Row row:combined.values())if(Rules.matchesPost(query,row.s("name"),row.s("district"),row.s("address"),row.s("zip"),row.s("city")))result.add(row);
-        Collections.sort(result,(a,b)->Rules.key(a.s("name")).compareTo(Rules.key(b.s("name"))));
+        org.json.JSONObject region=Rules.fullCep(query)?new CepLookup(context).saved(query):null;
+        for(Db.Row row:combined.values()){
+            boolean exact=Rules.matchesPost(query,row.s("name"),row.s("district"),row.s("address"),row.s("zip"),row.s("city"));
+            boolean sameCity=region!=null&&Rules.key(row.s("city")).equals(Rules.key(region.optString("localidade")))&&Rules.key(row.s("state")).equals(Rules.key(region.optString("uf")));
+            if(exact||sameCity)result.add(row);
+        }
+        final String neighborhood=region==null?"":region.optString("bairro");
+        Collections.sort(result,(a,b)->{int ar=Rules.regionRank(neighborhood,a.s("name")+" "+a.s("district")),br=Rules.regionRank(neighborhood,b.s("name")+" "+b.s("district"));return ar!=br?Integer.compare(ar,br):Rules.key(a.s("name")).compareTo(Rules.key(b.s("name")));});
         return result;
     }
     private List<Db.Row> parse(String text)throws Exception{
