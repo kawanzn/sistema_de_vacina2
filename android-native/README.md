@@ -1,12 +1,22 @@
-# EasyVacc Android 2.1.4
+# EasyVacc Android 2.2.0
+
+Aula 3: **lembretes locais** integrados ao Portal do Cidadão e a Mais do profissional.
+Permitem criar título/mensagem, escolher data/hora futura, consultar histórico e cancelar.
+Permissão Android 13+, canal, teste imediato e abertura ao tocar na notificação. Sem internet
+ou conta para disparar; horário aproximado, sem alarmes exatos.
+
+[Roteiro, 10 casos acumulados e resultados reais](docs/aula-3-lembretes.md).
+**Validação no celular pendente:** 95 verificações JVM aprovadas e APK assinado; entrega futura,
+permissão, cancelamento e abertura ao toque ainda precisam das evidências no dispositivo.
+
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20104, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20200, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.1.4.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.2.0.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
@@ -80,7 +90,7 @@ Detalhes em `docs/sincronizacao-android.md` na raiz. Não publique credenciais n
 
 ## Verificações e limites
 
-- 81 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
+- 95 verificações JVM de regras, buscas, estados, CPF, datas, CSV e senha.
 - 27 testes Django, incluindo as regressões web, sincronização e catálogo público de postos. Logs em `docs/evidencias/`.
 - Compilação do APK e do runner Android, alinhamento e assinatura v1/v2/v3.
 - Inspeção do manifesto e DEX para confirmar código nativo, sem WebView/TWA.
@@ -110,7 +120,7 @@ A chave privada foi entregue separadamente; preserve-a para atualizações futur
 Pedro Marcos Quintanilha de Oliveira Nunes — 202312595. Kawan Lopes Mangia — 202312633.
 Universidade de Vassouras.
 
-## CEP e agendamento na versão 2.1.4
+## CEP e agendamento na versão 2.2.0
 
 O CEP residencial localiza a cidade e prioriza postos que citam o bairro. O CEP 28994-160
 (Condado de Bacaxá, Saquarema) funciona offline desde a instalação; outros CEPs ficam salvos

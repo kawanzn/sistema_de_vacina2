@@ -65,9 +65,25 @@ public final class NativeInstrumentation extends Instrumentation {
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Agendar nova dose"));waitForIdleSync();
             check("Botão do portal abre tela própria de agendamento",()->{if(!hasText(main.getWindow().getDecorView(),"Agendar Nova Dose"))throw new AssertionError("Agendamento não abriu.");});
             runOnMainSync(main::finish);
+            getTargetContext().deleteDatabase("reminder_instrumentation.db");
+            try(ReminderStore reminders=new ReminderStore(getTargetContext(),"reminder_instrumentation.db")){
+                check("Aula3 banco de lembretes começa vazio",()->eq(reminders.all().size(),0));
+                check("Aula3 passado não cria registro",()->{rejects(()->reminders.insert("Título fictício","Mensagem fictícia",System.currentTimeMillis()-60000));eq(reminders.all().size(),0);});
+                int first=reminders.insert("Lembrete fictício A","Mensagem fictícia A",System.currentTimeMillis()+600000),second=reminders.insert("Lembrete fictício B","Mensagem fictícia B",System.currentTimeMillis()+1200000);
+                check("Aula3 IDs independentes",()->{if(first==second)throw new AssertionError();eq(reminders.all().size(),2);});
+                reminders.status(first,"Agendado");reminders.status(second,"Agendado");reminders.status(first,"Cancelado");
+                check("Aula3 cancelamento preserva histórico independente",()->{if(!reminders.get(first).status.equals("Cancelado")||!reminders.get(second).status.equals("Agendado"))throw new AssertionError();});
+                reminders.interrupted();
+                check("Aula3 reinício não deixa falso agendamento ativo",()->{if(!reminders.get(first).status.equals("Cancelado")||!reminders.get(second).status.startsWith("Reagendar"))throw new AssertionError();});
+            }
+            try(ReminderStore reopened=new ReminderStore(getTargetContext(),"reminder_instrumentation.db")){check("Aula3 lista persiste ao reabrir banco",()->eq(reopened.all().size(),2));}
+            getTargetContext().deleteDatabase("reminder_instrumentation.db");
+            Activity remindersScreen=startActivitySync(new Intent(getTargetContext(),ReminderActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
+            check("Aula3 formulário e lista nativos abrem",()->{if(!hasText(remindersScreen.getWindow().getDecorView(),"Lembretes locais")||!hasText(remindersScreen.getWindow().getDecorView(),"Agendar lembrete"))throw new AssertionError();});
+            runOnMainSync(remindersScreen::finish);
             report.append("TOTAL: ").append(count).append(" verificações Android aprovadas.\n");result.putString("stream",report.toString());finish(Activity.RESULT_OK,result);
         }catch(Throwable error){report.append("FALHA: ").append(error.toString()).append('\n');result.putString("stream",report.toString());finish(Activity.RESULT_CANCELED,result);}
-        finally{if(db!=null)db.close();getTargetContext().deleteDatabase("instrumentation_test.db");}
+        finally{if(db!=null)db.close();getTargetContext().deleteDatabase("instrumentation_test.db");getTargetContext().deleteDatabase("reminder_instrumentation.db");}
     }
     private boolean hasText(View view,String value){if(view instanceof TextView&&((TextView)view).getText().toString().contains(value))return true;if(view instanceof ViewGroup){ViewGroup g=(ViewGroup)view;for(int i=0;i<g.getChildCount();i++)if(hasText(g.getChildAt(i),value))return true;}return false;}
     private boolean clickText(View view,String value){if(view instanceof android.widget.Button&&((TextView)view).getText().toString().equals(value)){view.performClick();return true;}if(view instanceof ViewGroup){ViewGroup g=(ViewGroup)view;for(int i=0;i<g.getChildCount();i++)if(clickText(g.getChildAt(i),value))return true;}return false;}

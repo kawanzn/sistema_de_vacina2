@@ -71,6 +71,20 @@ public final class DomainTests {
         test("Rua com dígitos não dispara consulta de CEP",()->eq(Rules.fullCep("Rua 28994160"),false));
         test("Condado de Bacaxá prioriza posto de Bacaxá",()->eq(Rules.regionRank("Condado de Bacaxá (Bacaxá)","ESF Bacaxá Bacaxá"),0));
         test("Outros bairros não são chamados de próximos",()->eq(Rules.regionRank("Condado de Bacaxá (Bacaxá)","ESF Jaconé Jaconé"),1));
+        test("Aula3 CT05 futuro válido",()->ReminderRules.validate("Conferir caderneta","Abra o aplicativo",2000,1000));
+        test("Aula3 CT06 horário passado",()->rejects(()->ReminderRules.validate("Título","Mensagem",999,1000)));
+        test("Aula3 limite horário igual a agora",()->rejects(()->ReminderRules.validate("Título","Mensagem",1000,1000)));
+        test("Aula3 limite horário futuro 1 ms",()->ReminderRules.validate("Título","Mensagem",1001,1000));
+        test("Aula3 título vazio",()->rejects(()->ReminderRules.validate("  ","Mensagem",2000,1000)));
+        test("Aula3 mensagem vazia",()->rejects(()->ReminderRules.validate("Título","  ",2000,1000)));
+        test("Aula3 limite título 80",()->ReminderRules.validate(new String(new char[80]).replace('\0','A'),"Mensagem",2000,1000));
+        test("Aula3 título acima de 80",()->rejects(()->ReminderRules.validate(new String(new char[81]).replace('\0','A'),"Mensagem",2000,1000)));
+        test("Aula3 mensagem acima de 500",()->rejects(()->ReminderRules.validate("Título",new String(new char[501]).replace('\0','A'),2000,1000)));
+        test("Aula3 não entrega antes da hora",()->eq(ReminderRules.deliverable("Agendado",2000,1999),false));
+        test("Aula3 permite entrega no horário",()->eq(ReminderRules.deliverable("Agendado",2000,2000),true));
+        test("Aula3 cancelado não publica",()->eq(ReminderRules.deliverable("Cancelado",2000,3000),false));
+        test("Aula3 publicação não se repete",()->eq(ReminderRules.deliverable("Publicada",2000,3000),false));
+        test("Aula3 reinício exige reagendar",()->eq(ReminderRules.deliverable("Reagendar após reinício",2000,3000),false));
         System.out.println("TOTAL: "+passed+" verificações aprovadas; 0 falhas. Ambiente: JVM; não é execução Android.");
     }
 }

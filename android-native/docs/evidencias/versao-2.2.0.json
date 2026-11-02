@@ -1,0 +1,12 @@
+{
+  "versionName": "2.2.0",
+  "versionCode": 20200,
+  "data": "2026-11-02",
+  "sha256": "d2f12716aca3f38b54461ea728ab890060efd8f537ee7ad43f2a2f3931805cec",
+  "jvm": 95,
+  "novos_testes_regras_lembretes": 14,
+  "android_executado": false,
+  "testes_instrumentados": "compilados, não executados",
+  "evidencias_notificacao_cancelamento": "pendentes; usuário escolheu roteiro para testar",
+  "servidor": "não alterado; lembretes exclusivamente locais"
+}
