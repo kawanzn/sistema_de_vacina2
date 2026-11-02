@@ -10,3 +10,6 @@ venv]
 firebase-debug.log
 firestore-debug.log
 vacinas/tests.py
+android/
+.github/
+tests/

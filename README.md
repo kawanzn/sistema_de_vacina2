@@ -138,7 +138,18 @@ python manage.py test vacinas --verbosity 2
 
 Sem essa variável, os testes que acessam o Firestore são ignorados.
 
-## Integrantes
+## Aplicativo Android - lembretes de vacinação
+
+O projeto nativo está na pasta [android](android/README.md). Ele permite criar,
+agendar, listar e cancelar lembretes com notificações do próprio Android.
+O GitHub Actions compila um APK de desenvolvimento e executa os testes.
+Consulte [as execuções Android](https://github.com/kawanzn/sistema_de_vacina2/actions/workflows/android.yml)
+para conferir o resultado e baixar o artefato de uma execução bem-sucedida.
+
+Os lembretes ficam no dispositivo e não cancelam consultas do sistema web.
+A versão didática não usa alarmes exatos nem restaura alarmes após reinício.
+
+## Integrantes do projeto
 
 - Ataides Alves Cota Junior — 202312481
 - Kaio Abreu Oliveira — 202312160

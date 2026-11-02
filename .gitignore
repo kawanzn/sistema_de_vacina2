@@ -10,6 +10,16 @@ venv]/
 .secrets/
 .env.*
 !.env.example
+
+# Compilação Android (sem credenciais ou APKs no histórico)
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/**/*.iml
+*.jks
+*.keystore
 firebase-debug.log
 firestore-debug.log
 .runtime/
