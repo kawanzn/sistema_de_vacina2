@@ -4,10 +4,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -39,9 +37,6 @@ public final class MainActivity extends Activity {
     private boolean pendingTest;
     private final int teal = Color.rgb(0,136,121);
     private final int navy = Color.rgb(18,48,71);
-    private final BroadcastReceiver refresh = new BroadcastReceiver() {
-        @Override public void onReceive(Context c, Intent i) { render(); }
-    };
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -53,9 +48,13 @@ public final class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(20),dp(18),dp(20),dp(24));
         scroll.addView(root);
         root.setOnApplyWindowInsetsListener((v,insets) -> {
-            android.graphics.Insets bars = Build.VERSION.SDK_INT >= 30 ? insets.getInsets(WindowInsets.Type.systemBars()) : null;
-            int top = bars == null ? insets.getSystemWindowInsetTop() : bars.top;
-            int bottom = bars == null ? insets.getSystemWindowInsetBottom() : bars.bottom;
+            int top, bottom;
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+                top = bars.top; bottom = bars.bottom;
+            } else {
+                top = insets.getSystemWindowInsetTop(); bottom = insets.getSystemWindowInsetBottom();
+            }
             root.setPadding(dp(20),top+dp(18),dp(20),bottom+dp(24)); return insets;
         });
         root.addView(text("EasyVacc",30,true));
@@ -80,6 +79,7 @@ public final class MainActivity extends Activity {
         })));
         feedback = text("",14,false); feedback.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); root.addView(feedback);
         root.addView(text("Meus lembretes",21,true));
+        root.addView(button("Atualizar lista",this::render));
         root.addView(text("Cancelar aqui remove somente o lembrete. Sua consulta ou reserva no sistema permanece inalterada.",13,false));
         list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL); root.addView(list);
         root.addView(button("Abrir Portal do Cidadão",() -> safely(() -> startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://easyvacc-two.vercel.app/portal/"))))));
@@ -91,12 +91,8 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
-        IntentFilter filter = new IntentFilter(AlarmReceiver.REFRESH);
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(refresh,filter,Context.RECEIVER_NOT_EXPORTED);
-        else registerReceiver(refresh,filter);
         render();
     }
-    @Override protected void onPause() { unregisterReceiver(refresh); super.onPause(); }
     private void chooseDate() {
         Calendar calendar = Calendar.getInstance(); calendar.setTimeInMillis(selected);
         new DatePickerDialog(this,(view,year,month,day) -> {

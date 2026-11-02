@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 
 public final class AlarmReceiver extends BroadcastReceiver {
-    public static final String REFRESH = "br.edu.easyvacc.REFRESH";
     @Override public void onReceive(Context context, Intent intent) {
         ReminderRepository repository = new ReminderRepository(context);
         Reminder item;
@@ -31,6 +30,5 @@ public final class AlarmReceiver extends BroadcastReceiver {
             }
         } catch (RuntimeException error) { item.state = Reminder.FAILED; }
         try { repository.update(item); } catch (RuntimeException ignored) { /* Não travar o processo de recepção. */ }
-        context.sendBroadcast(new Intent(REFRESH).setPackage(context.getPackageName()));
     }
 }
