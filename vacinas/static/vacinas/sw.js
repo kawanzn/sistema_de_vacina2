@@ -3,10 +3,13 @@
    - Mantem POSTs fora do service worker; a fila de sincronizacao fica em
      offline-sync.js, no IndexedDB do navegador. */
 
-const STATIC_CACHE = 'easyvacc-static-v6';
+const STATIC_CACHE = 'easyvacc-static-v7';
 const PAGE_CACHE = 'easyvacc-pages-v1';
 const RUNTIME_CACHE = 'easyvacc-runtime-v1';
 const PRECACHE_URLS = [
+  '/lembretes/',
+  '/static/vacinas/reminders-core.js',
+  '/static/vacinas/reminders.js',
   '/',
   '/manifest.webmanifest',
   '/static/vacinas/easyvacc.png',
@@ -16,6 +19,11 @@ const PRECACHE_URLS = [
   '/static/vacinas/pwa-install.css',
   '/static/vacinas/pwa-install.js',
 ];
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(self.clients.openWindow('/lembretes/'));
+});
 
 function sameOrigin(url) {
   return url.origin === self.location.origin;

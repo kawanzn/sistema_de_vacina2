@@ -1,9 +1,11 @@
 from django.urls import path
 from vacinas import views 
 from django.contrib.auth import views as auth_views
+from django.views.generic import TemplateView
 
 
 urlpatterns = [
+    path('lembretes/', TemplateView.as_view(template_name='vacinas/lembretes.html'), name='lembretes'),
     path('admin/', views.configuracoes, name='configuracoes'),
     path('manifest.webmanifest', views.manifest, name='manifest'),
     path('sw.js', views.service_worker, name='service_worker'),
