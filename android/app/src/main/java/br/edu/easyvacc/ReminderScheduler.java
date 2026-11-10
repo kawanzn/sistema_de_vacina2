@@ -36,7 +36,7 @@ public final class ReminderScheduler {
         if (!permitted()) throw new IllegalStateException("Permita as notificações do EasyVacc e do canal de lembretes nas configurações do Android.");
         if (!(Reminder.CREATED.equals(item.state) || Reminder.PAUSED.equals(item.state) || Reminder.FAILED.equals(item.state)))
             throw new IllegalStateException("Este lembrete não pode ser agendado novamente.");
-        Reminder.validate(item.title, item.at, System.currentTimeMillis());
+        Reminder.validate(item.title, item.message, item.at, System.currentTimeMillis());
         item.state = Reminder.SCHEDULED; item.boot = repository.boot();
         repository.update(item);
         try {

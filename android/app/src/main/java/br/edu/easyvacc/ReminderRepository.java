@@ -37,11 +37,11 @@ public final class ReminderRepository {
                 throw new IllegalStateException("Não foi possível salvar os lembretes.");
         } catch (JSONException error) { throw new IllegalStateException("Falha ao salvar os lembretes.", error); }
     }
-    public Reminder create(String title, long at, long now) {
-        Reminder.validate(title, at, now);
+    public Reminder create(String title, String message, long at, long now) {
+        Reminder.validate(title, message, at, now);
         List<Reminder> items = list();
         if (items.size() >= 100) throw new IllegalStateException("Limite de 100 lembretes neste aparelho.");
-        Reminder item = new Reminder(UUID.randomUUID().toString(), title.trim(), at, Reminder.CREATED, boot());
+        Reminder item = new Reminder(UUID.randomUUID().toString(), title.trim(), message.trim(), at, Reminder.CREATED, boot());
         items.add(item); save(items); return item;
     }
     public Reminder find(String id) {

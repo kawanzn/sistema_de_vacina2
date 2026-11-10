@@ -4,13 +4,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
@@ -33,8 +31,7 @@ public final class MainActivity extends Activity {
     private EditText title;
     private Button dateButton;
     private long selected;
-    private String pendingId;
-    private boolean pendingTest;
+    private EditText message;
     private final int teal = Color.rgb(0,136,121);
     private final int navy = Color.rgb(18,48,71);
 
@@ -42,7 +39,6 @@ public final class MainActivity extends Activity {
         super.onCreate(saved);
         repository = new ReminderRepository(this); scheduler = new ReminderScheduler(this);
         selected = saved == null ? System.currentTimeMillis()+3600000 : saved.getLong("selected");
-        if (saved != null) { pendingId = saved.getString("pendingId"); pendingTest = saved.getBoolean("pendingTest"); }
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(244,247,250));
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(20),dp(18),dp(20),dp(24));
@@ -58,8 +54,9 @@ public final class MainActivity extends Activity {
             root.setPadding(dp(20),top+dp(18),dp(20),bottom+dp(24)); return insets;
         });
         root.addView(text("EasyVacc",30,true));
+        root.addView(button("Buscar e compartilhar postos",() -> startActivity(new Intent(this,PostsActivity.class))));
         root.addView(text("Lembretes de vacinação",21,true));
-        root.addView(text("Seus lembretes ficam somente neste aparelho. Não informe CPF ou dados de saúde no título.",14,false));
+        root.addView(text("Seus lembretes ficam somente neste aparelho. Não informe CPF ou dados de saúde no título ou na mensagem.",14,false));
         TextView warning = text("Versão didática: alarmes não exatos podem atrasar. Após reiniciar o aparelho, agende novamente os itens pausados. Não utilize para alertas críticos.",14,false);
         warning.setPadding(dp(12),dp(12),dp(12),dp(12)); warning.setBackground(card(Color.rgb(255,244,209))); root.addView(warning);
 
@@ -68,26 +65,40 @@ public final class MainActivity extends Activity {
         title = new EditText(this); title.setHint("Conferir agendamento de vacinação"); title.setSingleLine(true); title.setFilters(new InputFilter[]{new InputFilter.LengthFilter(80)});
         title.setContentDescription("Título do lembrete"); form.addView(title);
         if (saved != null) title.setText(saved.getString("title", ""));
+        message = new EditText(this); message.setHint("Abra o EasyVacc para conferir o compromisso");
+        message.setContentDescription("Mensagem do lembrete");
+        message.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        message.setMinLines(2); message.setFilters(new InputFilter[]{new InputFilter.LengthFilter(500)});
+        form.addView(message); if (saved != null) message.setText(saved.getString("message", ""));
         dateButton = button("",this::chooseDate); updateDate(); form.addView(dateButton);
-        form.addView(button("Criar lembrete",() -> safely(() -> {
-            repository.create(title.getText().toString(), selected, System.currentTimeMillis());
-            title.setText(""); render(); say("Lembrete criado. Toque em Agendar para ativá-lo.",false);
+        form.addView(button("Permitir notificações",this::permission));
+        form.addView(button("Configurações de notificações",() -> safely(() -> startActivity(
+            new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName())))));
+        form.addView(button("Agendar lembrete",() -> safely(() -> {
+            String heading=title.getText().toString(), body=message.getText().toString();
+            long now=System.currentTimeMillis();
+            Reminder.validate(heading,body,selected,now); requirePermission();
+            Reminder item=repository.create(heading,body,selected,now);
+            scheduler.schedule(item.id);
+            title.setText(""); message.setText(""); render();
+            say("Lembrete agendado. O Android pode atrasar a entrega.",false);
         })));
         form.addView(button("Testar notificação agora",() -> safely(() -> {
-            Reminder item = repository.create("Teste de notificação",System.currentTimeMillis()+60000,System.currentTimeMillis());
-            activate(item.id,true);
+            requirePermission();
+            AlarmReceiver.publish(this,"test","Teste EasyVacc","Toque para abrir os lembretes. Este teste não agenda um alarme.");
+            say("Notificação de teste enviada ao Android.",false);
         })));
         feedback = text("",14,false); feedback.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); root.addView(feedback);
         root.addView(text("Meus lembretes",21,true));
         root.addView(button("Atualizar lista",this::render));
         root.addView(text("Cancelar aqui remove somente o lembrete. Sua consulta ou reserva no sistema permanece inalterada.",13,false));
         list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL); root.addView(list);
-        root.addView(button("Abrir Portal do Cidadão",() -> safely(() -> startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://easyvacc-two.vercel.app/portal/"))))));
         setContentView(scroll); render();
     }
     @Override protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out); out.putLong("selected",selected); out.putString("title",title.getText().toString());
-        out.putString("pendingId",pendingId); out.putBoolean("pendingTest",pendingTest);
+        out.putString("message",message.getText().toString());
     }
     @Override protected void onResume() {
         super.onResume();
@@ -104,25 +115,18 @@ public final class MainActivity extends Activity {
         },calendar.get(Calendar.YEAR),calendar.get(Calendar.MONTH),calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
     private void updateDate() { dateButton.setText("Data e hora: " + DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(selected)); }
-    private void activate(String id, boolean test) {
-        pendingId = id; pendingTest = test;
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},10); return;
-        }
-        finishActivation();
+    private void requirePermission() {
+        if (!scheduler.permitted()) throw new IllegalStateException("Permita as notificações e confira o canal nas configurações. Depois toque no botão novamente.");
     }
-    private void finishActivation() {
-        String id = pendingId; boolean test = pendingTest; pendingId = null; pendingTest = false;
-        scheduler.schedule(id);
-        if (test) sendBroadcast(new Intent(this,AlarmReceiver.class).putExtra("id",id));
-        say(test ? "Notificação de teste solicitada. Confira a central de notificações." : "Lembrete agendado. O Android pode ajustar o horário de entrega.",false);
-        render();
+    private void permission() {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},10);
+        else say(scheduler.permitted() ? "Notificações permitidas." : "Abra as configurações para habilitar o aplicativo e o canal.",!scheduler.permitted());
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results) {
         super.onRequestPermissionsResult(request,permissions,results);
-        if (request != 10) return;
-        if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) safely(this::finishActivation);
-        else { pendingId = null; say("Permissão negada. O lembrete não foi agendado. Você pode permitir notificações nas configurações do Android.",true); render(); }
+        if (request == 10) say(scheduler.permitted() ? "Permissão concedida. Toque em Agendar para criar o lembrete." :
+            "Notificações não permitidas. Nenhum lembrete foi criado por esta ação.",!scheduler.permitted());
     }
     private void render() {
         if (list == null) return;
@@ -133,9 +137,11 @@ public final class MainActivity extends Activity {
             for (Reminder item : items) {
                 LinearLayout row = panel(); row.addView(text(item.title,18,true));
                 row.addView(text(DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(item.at),14,false));
+                row.addView(text(item.message,14,false));
                 row.addView(text(item.state,15,true));
+                if(item.notifiedAt>0)row.addView(text("Enviada ao Android: "+DateFormat.getDateTimeInstance().format(item.notifiedAt),13,false));
                 if (Reminder.CREATED.equals(item.state) || Reminder.PAUSED.equals(item.state) || Reminder.FAILED.equals(item.state))
-                    row.addView(button("Agendar",() -> safely(() -> activate(item.id,false))));
+                    row.addView(button("Agendar",() -> safely(() -> {requirePermission();scheduler.schedule(item.id);render();say("Lembrete agendado.",false);})));
                 if (!Reminder.CANCELLED.equals(item.state)) row.addView(button("Cancelar lembrete",() -> safely(() -> {
                     scheduler.cancel(item.id); say("Lembrete cancelado. Alarme e notificação removidos.",false); render();
                 })));

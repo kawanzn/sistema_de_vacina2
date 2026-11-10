@@ -9,5 +9,6 @@
             </intent-filter>
         </activity>
         <receiver android:name=".AlarmReceiver" android:exported="false" />
+        <activity android:name=".PostsActivity" android:exported="false" />
     </application>
 </manifest>

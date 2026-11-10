@@ -1,19 +1,22 @@
 # EasyVacc Android
 
-Aplicativo Android nativo em Java para os lembretes de vacinação da Aula 3.
+Aplicativo Android nativo em Java, versão 1.1.0, para as Aulas 2 e 3.
 Os dados ficam no aparelho; nenhuma chave Firebase ou senha do site é incluída.
-O botão do Portal abre o site no navegador. Os lembretes não são sincronizados
-com os agendamentos do Django e não alteram reservas ou consultas.
+As telas do diretório e dos lembretes funcionam offline. Os lembretes não são
+sincronizados com os agendamentos do Django e não alteram reservas ou consultas.
+Esta versão didática usa o pacote `br.edu.easyvacc` e pode coexistir com o
+EasyVacc completo da branch main. Veja o [roteiro das aulas](AULAS-2-E-3.md).
 
 ## Funcionalidades
 
-- Criar um lembrete com título e data/hora futuros.
+- Buscar postos por nome, bairro ou endereço e compartilhar somente o endereço público.
+- Criar um lembrete com título, mensagem e data/hora futuros.
 - Agendar um alarme não exato com `AlarmManager.setAndAllowWhileIdle`.
 - Listar os lembretes salvos em `SharedPreferences`.
 - Emitir notificação nativa por `BroadcastReceiver` e canal de notificações.
 - Pedir `POST_NOTIFICATIONS` no Android 13 ou superior.
 - Cancelar tanto o alarme pendente quanto uma notificação já emitida.
-- Testar uma notificação imediatamente, sem aguardar o alarme não exato.
+- Testar uma notificação imediatamente, sem criar registro ou alarme.
 - Informar erros de validação, persistência e falta de permissão.
 
 Compatibilidade: Android 8.0 (API 26) ou superior; compilação e alvo API 35.
@@ -56,6 +59,8 @@ Os testes usam Robolectric, que simula APIs Android na JVM:
 6. Identificação de itens pausados após mudança do contador de boot.
 7. Identificador inexistente.
 8. Permissão de notificação negada no Android 13.
+9. Mensagem vazia e teste imediato sem registro nem alarme.
+10. Busca de postos, prévia pública, cancelamento e abertura do seletor nativo.
 
 Esses testes não substituem evidências obtidas em um celular ou emulador.
 O estado `Notificado` indica que o app solicitou a notificação ao Android;
