@@ -1,11 +1,13 @@
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import TemplateView
 from vacinas import views 
 from django.contrib.auth import views as auth_views
 from vacinas import android_sync, public_directory
 
 
 urlpatterns = [
+    path('lembretes/', TemplateView.as_view(template_name='vacinas/lembretes.html'), name='lembretes'),
     path('api/android/posts/', public_directory.posts, name='android_public_posts'),
     path('api/android/status/', android_sync.status, name='android_sync_status'),
     path('api/android/login/', android_sync.login, name='android_login'),

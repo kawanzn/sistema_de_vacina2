@@ -1,0 +1,28 @@
+{% extends 'vacinas/base.html' %}
+{% load static %}
+{% block content %}
+<div class="content-card mx-auto" style="max-width: 900px">
+  <a href="{% url 'portal_boas_vindas' %}">Voltar ao Portal do Cidadão</a>
+  <h1 class="mt-3">Lembretes de vacinação</h1>
+  <p>Confirme o lembrete no aplicativo EasyVacc para receber a notificação mesmo depois de sair da tela. Consulte ou cancele os novos lembretes no Android.</p>
+  <p><a href="https://github.com/kawanzn/sistema_de_vacina2/raw/refs/heads/main/releases/EasyVacc-Android-2.3.0.apk">Baixar EasyVacc para Android</a></p>
+  <form id="reminder-form" class="border rounded-3 p-3 mb-4">
+    <label class="form-label" for="reminder-title">Título do lembrete</label>
+    <input id="reminder-title" name="title" class="form-control mb-3" maxlength="80" required placeholder="Conferir agendamento de vacinação">
+    <label class="form-label" for="reminder-message">Mensagem</label>
+    <textarea id="reminder-message" name="message" class="form-control mb-3" maxlength="500" required></textarea>
+    <label class="form-label" for="reminder-when">Data e hora neste dispositivo</label>
+    <input id="reminder-when" name="when" class="form-control mb-3" type="datetime-local" step="1" required>
+    <p class="small text-muted">Não informe CPF, nome de paciente ou dados de saúde. O lembrete não agenda uma consulta.</p>
+    <button class="btn btn-primary" type="submit">Abrir no app Android</button>
+  </form>
+  <div id="reminder-feedback" role="status" aria-live="polite"></div>
+  <section id="reminder-legacy" hidden>
+    <h2 class="h4">Lembretes antigos deste navegador</h2>
+    <p>Reagende no aplicativo para receber o aviso fora desta página.</p>
+    <div id="reminder-list"></div>
+  </section>
+</div>
+<script src="{% static 'vacinas/reminders-core.js' %}"></script>
+<script src="{% static 'vacinas/reminders.js' %}"></script>
+{% endblock %}

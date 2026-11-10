@@ -22,13 +22,13 @@ public final class ReminderActivity extends Activity {
     private long chosen;
     private final SimpleDateFormat format=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     private int dp(int value){return (int)(value*getResources().getDisplayMetrics().density+0.5f);}
-    private TextView text(LinearLayout parent,String value,int size){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(0xff17253f);t.setPadding(0,dp(8),0,dp(8));parent.addView(t);return t;}
+    private TextView text(LinearLayout parent,String value,int size){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(0xff122e29);t.setPadding(0,dp(8),0,dp(8));parent.addView(t);return t;}
     private EditText input(LinearLayout parent,String label,String initial,int id,int max){text(parent,label,15);EditText e=new EditText(this);e.setId(id);e.setText(initial);e.setTextSize(16);e.setMinHeight(dp(50));e.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(max)});parent.addView(e,new LinearLayout.LayoutParams(-1,-2));return e;}
     interface Action{void run()throws Exception;}
     private Button button(LinearLayout parent,String label,Action action){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setMinHeight(dp(50));parent.addView(b,new LinearLayout.LayoutParams(-1,-2));b.setOnClickListener(v->{b.setEnabled(false);try{action.run();}catch(Exception error){new AlertDialog.Builder(this).setTitle("Não foi possível concluir").setMessage(error.getMessage()==null?"Tente novamente. Confira a lista antes de repetir.":error.getMessage()).setPositiveButton("Entendi",null).show();}finally{b.setEnabled(true);}});return b;}
     public void onCreate(Bundle saved){
         super.onCreate(saved);ReminderScheduler.channel(this);
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(0xfff5f7fc);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(0xfff1f6f3);
         root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
         ScrollView scroll=new ScrollView(this);LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(22),dp(16),dp(22),dp(24));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,-1));
         text(body,"Lembretes locais",27);
@@ -47,6 +47,19 @@ public final class ReminderActivity extends Activity {
         text(body,"Após reiniciar o celular ou atualizar o app, recrie os lembretes pendentes. Forçar parada pode impedir o disparo. Sem alarmes exatos, recorrência ou sincronização. Publicada significa enviada ao Android, não lida. Não use para alertas médicos ou emergências.",13);
         button(body,"Voltar ao EasyVacc",()->{startActivity(new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));finish();});
         setContentView(root);root.requestApplyInsets();refresh();
+        if(saved==null)readDraft(getIntent());
+    }
+    private void readDraft(Intent intent){
+        if(intent==null||!Intent.ACTION_VIEW.equals(intent.getAction()))return;
+        Uri uri=intent.getData();
+        if(uri==null||!"easyvacc-completo".equals(uri.getScheme())||!"lembrete".equals(uri.getHost())||!"/novo".equals(uri.getPath()))return;
+        try{
+            String heading=uri.getQueryParameter("titulo"),body=uri.getQueryParameter("mensagem");
+            long when=Long.parseLong(uri.getQueryParameter("quando"));
+            ReminderRules.validate(heading,body,when,System.currentTimeMillis());
+            title.setText(heading);message.setText(body);chosen=when;updateDate();
+            notice.setText("Confira os dados e toque em Agendar lembrete para confirmar.");
+        }catch(RuntimeException error){notice.setText("Rascunho inválido ou horário passado. Confira os dados antes de agendar.");}
     }
     private void updateDate(){date.setText(chosen==0?"Escolher data e horário *":format.format(new Date(chosen)));}
     private void pick(){Calendar c=Calendar.getInstance();if(chosen>0)c.setTimeInMillis(chosen);else c.add(Calendar.MINUTE,5);new DatePickerDialog(this,(view,y,m,d)->{Calendar candidate=(Calendar)c.clone();candidate.set(y,m,d);new TimePickerDialog(this,(clock,h,min)->{candidate.set(Calendar.HOUR_OF_DAY,h);candidate.set(Calendar.MINUTE,min);candidate.set(Calendar.SECOND,0);candidate.set(Calendar.MILLISECOND,0);chosen=candidate.getTimeInMillis();updateDate();},c.get(Calendar.HOUR_OF_DAY),c.get(Calendar.MINUTE),true).show();},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show();}

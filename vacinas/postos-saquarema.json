@@ -1,0 +1,161 @@
+[
+  {
+    "name": "ESF Água Branca",
+    "district": "Água Branca",
+    "address": "Avenida Nossa Senhora de Fátima, 6",
+    "cnes": 5290236,
+    "lat": -22.88443878681159,
+    "lon": -42.42598056793213
+  },
+  {
+    "name": "ESF Bacaxá",
+    "district": "Bacaxá",
+    "address": "Rua Alfredo Menezes, 980",
+    "cnes": 271152,
+    "lat": -22.89303792559838,
+    "lon": -42.457298040390015
+  },
+  {
+    "name": "ESF Barra Nova",
+    "district": "Barra Nova",
+    "address": "Avenida Litorânea, s/n",
+    "cnes": 2274167,
+    "lat": -22.926460663983406,
+    "lon": -42.54661560058594
+  },
+  {
+    "name": "ESF Barreira",
+    "district": "Barreira",
+    "address": "Rua Capitão Nunes, 2605",
+    "cnes": 5522692,
+    "lat": -22.89720880585049,
+    "lon": -42.48782157897949
+  },
+  {
+    "name": "ESF Bicuíba",
+    "district": "Bicuíba",
+    "address": "Estrada da Bicuíba, s/n",
+    "cnes": 2696754,
+    "lat": -22.8646290429334,
+    "lon": -42.40628242492676
+  },
+  {
+    "name": "ESF Bonsucesso",
+    "district": "Bonsucesso",
+    "address": "Rua Armando Rodrigues, s/n",
+    "cnes": 3405435,
+    "lat": -22.88289681466491,
+    "lon": -42.4416446685791
+  },
+  {
+    "name": "ESF Boqueirão",
+    "district": "Boqueirão",
+    "address": "Avenida Nossa Senhora de Nazareth, 2509",
+    "cnes": 8271720,
+    "lat": -22.923,
+    "lon": -42.493
+  },
+  {
+    "name": "ESF Guarani",
+    "district": "Guarani",
+    "address": "Rua 4, 47",
+    "cnes": 8214158,
+    "lat": -22.913489376637244,
+    "lon": -42.458346982903564
+  },
+  {
+    "name": "ESF Jaconé",
+    "district": "Jaconé",
+    "address": "Rua Noventa e Sete, 798",
+    "cnes": 271136,
+    "lat": -22.92376,
+    "lon": -42.59481
+  },
+  {
+    "name": "ESF Jardim Ipitangas",
+    "district": "Jardim Ipitangas",
+    "address": "Rua Teresópolis, 238, esquina com a RJ-102",
+    "cnes": 4104668,
+    "lat": -22.881789746937443,
+    "lon": -42.39353656768799
+  },
+  {
+    "name": "ESF Madressilva",
+    "district": "Madressilva",
+    "address": "Rua dos Passageiros, 924"
+  },
+  {
+    "name": "ESF Mato Grosso",
+    "district": "Serra do Mato Grosso",
+    "address": "Rua Ezequias Teixeira de Souza, s/n",
+    "cnes": 4908317,
+    "lat": -22.88025,
+    "lon": -42.63131
+  },
+  {
+    "name": "ESF Mombaça",
+    "district": "Mombaça",
+    "address": "Estrada da Mombaça, 1160",
+    "cnes": 2274221,
+    "lat": -22.89365071698826,
+    "lon": -42.5445556640625
+  },
+  {
+    "name": "ESF Palmital",
+    "district": "Palmital",
+    "address": "Estrada Latino Melo, s/n",
+    "cnes": 2274272,
+    "lat": -22.83757874095283,
+    "lon": -42.45615005493164
+  },
+  {
+    "name": "ESF Rio D’Areia",
+    "district": "Rio D’Areia",
+    "address": "Estrada Latino Melo, s/n",
+    "cnes": 3211428,
+    "lat": -22.870164990806575,
+    "lon": -42.46387481689453
+  },
+  {
+    "name": "ESF Rio Mole",
+    "district": "Rio Mole",
+    "address": "Rodovia Amaral Peixoto, km 58",
+    "cnes": 2274213,
+    "lat": -22.853002818236636,
+    "lon": -42.550392150878906
+  },
+  {
+    "name": "ESF Rio Seco",
+    "district": "Rio Seco",
+    "address": "Rua Oliveira Viana, s/n"
+  },
+  {
+    "name": "ESF Sampaio Corrêa",
+    "district": "Basiléia / Sampaio Corrêa",
+    "address": "Rua Miguel Arcanjo Serafim, s/n, ao lado do C.M.E. Jurandir da Silva Melo",
+    "cnes": 2696762,
+    "lat": -22.8665705,
+    "lon": -42.5945181
+  },
+  {
+    "name": "ESF Saquarema",
+    "district": "Centro",
+    "address": "Rua Frutuoso de Oliveira, s/n, antigo CAMIS",
+    "cnes": 271179,
+    "lat": -22.93282,
+    "lon": -42.49739
+  },
+  {
+    "name": "ESF Vilatur",
+    "district": "Vilatur",
+    "address": "Rua Praia Ponta de Itapajé, quadra 388, lote 3"
+  },
+  {
+    "name": "UBS Engenho Grande",
+    "district": "Engenho Grande",
+    "address": "Estrada do Engenho Grande, s/n",
+    "cnes": 2274183,
+    "lat": -22.86787155405743,
+    "lon": -42.381649017333984
+  }
+]

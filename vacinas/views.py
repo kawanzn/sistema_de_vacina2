@@ -4,6 +4,7 @@ import os
 import requests
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from . import saquarema
 from .models import Vacina, Paciente, Estoque, PostoSaude, Agendamento, OfflineSubmission
 from .forms import PacienteForm, VacinaForm, EstoqueForm
 from django.http import HttpResponse
@@ -445,46 +446,34 @@ def cadastrar_estoque(request):
     return render(request, 'vacinas/cadastrar_estoque.html', {'form': form})
 
 def busca_postos(request):
-    """
-    Função unificada para busca de postos por CEP ou Bairro (ViaCEP)
-    E agora carregando as vacinas disponíveis em cada um.
-    """
-    cep_digitado = request.GET.get('cep', '').strip()
-    postos_encontrados = PostoSaude.objects.none()
-    bairro_detectado = None 
-
-    if cep_digitado:
-        cep_limpo = cep_digitado.replace("-", "").replace(" ", "").replace(".", "")
-        
-        postos_encontrados = PostoSaude.objects.filter(
-            Q(cep=cep_digitado) | Q(cep=cep_limpo) | Q(bairro__icontains=cep_digitado)
-        )
-
-        if not postos_encontrados.exists() and cep_limpo.isdigit() and len(cep_limpo) == 8:
-            url = f"https://viacep.com.br/ws/{cep_limpo}/json/"
-            try:
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    dados = response.json()
-                    if not dados.get('erro') and dados.get('bairro'):
-                        bairro_detectado = dados['bairro']
-                        postos_encontrados = PostoSaude.objects.filter(bairro__icontains=bairro_detectado)
-            except (requests.RequestException, ValueError, TypeError):
-                pass
-
-    for posto in postos_encontrados:
-        
-        from .models import Estoque # Importe dentro ou no topo do arquivo
-        posto.estoque_vacinas = Estoque.objects.filter(
-            posto=posto, quantidade_atual__gt=F('quantidade_reservada'),
-            data_validade__gte=timezone.localdate(),
-        )
-
-    return render(request, 'vacinas/postos.html', {
-        'postos': postos_encontrados,
-        'bairro_localizado': bairro_detectado,
-        'cep_pesquisado': cep_digitado
-    })
+    term = request.GET.get('cep', '').strip()[:120]
+    units = {saquarema.unit_key(u['name']): dict(
+        nome=u['name'], bairro=u['district'], endereco=u['address'],
+        lat=u.get('lat'), lon=u.get('lon'), publico=u['name']
+    ) for u in saquarema.directory()}
+    try:
+        for post in PostoSaude.objects.all():
+            key = saquarema.unit_key(post.nome)
+            if key in units:
+                units[key].update(id=post.pk, cep=post.cep)
+            else:
+                units[key] = dict(id=post.pk, nome=post.nome, bairro=post.bairro,
+                                  endereco=post.endereco, cep=post.cep)
+    except (OperationalError, ProgrammingError):
+        pass
+    matches, neighborhood, notice = saquarema.search(term, list(units.values()))
+    ids = [unit['id'] for unit in matches if unit.get('id')]
+    if ids:
+        stock = {}
+        for lot in Estoque.objects.filter(posto_id__in=ids, quantidade_atual__gt=F('quantidade_reservada'),
+                                          data_validade__gte=timezone.localdate()):
+            stock.setdefault(lot.posto_id, []).append(lot)
+        for unit in matches:
+            if unit.get('id'):
+                unit['estoque_consultado'] = True
+                unit['estoque_vacinas'] = stock.get(unit['id'], [])
+    return render(request, 'vacinas/postos.html', dict(
+        postos=matches, bairro_localizado=neighborhood, cep_pesquisado=term, aviso=notice))
 
 @login_required
 def exportar_dados_csv(request):
@@ -558,6 +547,15 @@ def offline_bootstrap(request):
 def agendar_vacina(request):
     # Definimos a variável no topo para ela sempre existir
     postos = PostoSaude.objects.all()
+    posto_selecionado = request.GET.get('posto', '') if request.method == 'GET' else request.POST.get('posto', '')
+    unit = saquarema.selected_unit(request.GET.get('unidade', '')[:120])
+    if request.method == 'GET' and unit:
+        match = next((post for post in postos if saquarema.unit_key(post.nome) == saquarema.unit_key(unit['name'])), None)
+        if match is None:
+            return render(request, 'vacinas/agendamento_indisponivel.html', {'unidade': unit, 'nao_cadastrada': True})
+        posto_selecionado = str(match.pk)
+    context = {'postos': postos, 'posto_selecionado': posto_selecionado}
+
     
     if request.method == 'POST':
         if _offline_already_applied(request):
@@ -572,18 +570,26 @@ def agendar_vacina(request):
             if error_response:
                 return error_response
             messages.error(request, 'Pessoa não encontrada. Confira o nome completo e a data de nascimento.')
-            return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
+            return render(request, 'vacinas/agendar_vacina.html', context)
 
         if not data_hora:
             error_response = _sync_error(request, 'Informe uma data e horario validos para o agendamento.')
             if error_response:
                 return error_response
             messages.error(request, 'Informe uma data e horário válidos para o agendamento.')
-            return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
+            return render(request, 'vacinas/agendar_vacina.html', context)
 
         try:
             with transaction.atomic():
                 estoque = Estoque.objects.select_for_update().get(id=item_id)
+                if (posto_selecionado and str(estoque.posto_id) != posto_selecionado) or estoque.data_validade < max(timezone.localdate(), timezone.localtime(data_hora).date()):
+                    warning = 'Escolha um lote vigente da unidade selecionada.'
+                    error_response = _sync_error(request, warning, status=409)
+                    if error_response is not None:
+                        return error_response
+                    messages.error(request, warning)
+                    return render(request, 'vacinas/agendar_vacina.html', context)
+
                 
                 if (estoque.quantidade_atual - estoque.quantidade_reservada) > 0:
                     Agendamento.objects.create(
@@ -611,10 +617,8 @@ def agendar_vacina(request):
             messages.error(request, f"Erro no sistema: {e}")
 
     # Este retorno garante que o GET (carregamento inicial) funcione sem erro de 'postos'
-    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
-            
-    postos = PostoSaude.objects.all()
-    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
+    return render(request, 'vacinas/agendar_vacina.html', context)
+
 
 @login_required
 def listar_agendamentos(request):

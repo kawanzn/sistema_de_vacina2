@@ -27,4 +27,25 @@ public final class SaquaremaDirectory {
         new String[]{"ESF Vilatur","Vilatur","Rua Praia Ponta de Itapajé, quadra 388, lote 3","2231990454","","Saquarema","RJ","https://transparencia.saquarema.rj.gov.br/informacoes-da-saude/unidades-de-saude/","2026-10-22","Confirme com a unidade o atendimento e as vacinas do dia."},
         new String[]{"UBS Engenho Grande","Engenho Grande","Estrada do Engenho Grande, s/n","","","Saquarema","RJ","https://www.saquarema.rj.gov.br/prefeitura-realizara-o-dia-d-de-multivacinacao/","2026-10-22","Confirme com a unidade o atendimento e as vacinas do dia."}
     };
+    // CNES/DATASUS: Saquarema, extração de 10/11/2026.
+    static final String[][] COORDINATES={
+        {"ESF Água Branca","Avenida Nossa Senhora de Fátima, 6","-22.88443878681159","-42.42598056793213"},
+        {"ESF Bacaxá","Rua Alfredo Menezes, 980","-22.89303792559838","-42.457298040390015"},
+        {"ESF Barra Nova","Avenida Litorânea, s/n","-22.926460663983406","-42.54661560058594"},
+        {"ESF Barreira","Rua Capitão Nunes, 2605","-22.89720880585049","-42.48782157897949"},
+        {"ESF Bicuíba","Estrada da Bicuíba, s/n","-22.8646290429334","-42.40628242492676"},
+        {"ESF Bonsucesso","Rua Armando Rodrigues, s/n","-22.88289681466491","-42.4416446685791"},
+        {"ESF Boqueirão","Avenida Nossa Senhora de Nazareth, 2509","-22.923","-42.493"},
+        {"ESF Guarani","Rua 4, 47","-22.913489376637244","-42.458346982903564"},
+        {"ESF Jaconé","Rua Noventa e Sete, 798","-22.92376","-42.59481"},
+        {"ESF Jardim Ipitangas","Rua Teresópolis, 238, esquina com a RJ-102","-22.881789746937443","-42.39353656768799"},
+        {"ESF Mato Grosso","Rua Ezequias Teixeira de Souza, s/n","-22.88025","-42.63131"},
+        {"ESF Mombaça","Estrada da Mombaça, 1160","-22.89365071698826","-42.5445556640625"},
+        {"ESF Palmital","Estrada Latino Melo, s/n","-22.83757874095283","-42.45615005493164"},
+        {"ESF Rio D’Areia","Estrada Latino Melo, s/n","-22.870164990806575","-42.46387481689453"},
+        {"ESF Rio Mole","Rodovia Amaral Peixoto, km 58","-22.853002818236636","-42.550392150878906"},
+        {"ESF Sampaio Corrêa","Rua Miguel Arcanjo Serafim, s/n, ao lado do C.M.E. Jurandir da Silva Melo","-22.8665705","-42.5945181"},
+        {"ESF Saquarema","Rua Frutuoso de Oliveira, s/n, antigo CAMIS","-22.93282","-42.49739"},
+        {"UBS Engenho Grande","Estrada do Engenho Grande, s/n","-22.86787155405743","-42.381649017333984"}
+    };
 }

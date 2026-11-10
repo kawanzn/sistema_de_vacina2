@@ -85,6 +85,14 @@ public final class DomainTests {
         test("Aula3 cancelado não publica",()->eq(ReminderRules.deliverable("Cancelado",2000,3000),false));
         test("Aula3 publicação não se repete",()->eq(ReminderRules.deliverable("Publicada",2000,3000),false));
         test("Aula3 reinício exige reagendar",()->eq(ReminderRules.deliverable("Reagendar após reinício",2000,3000),false));
+        test("Diretório GPS usa os 18 pontos conferidos no portal",()->eq(SaquaremaDirectory.COORDINATES.length,18));
+        test("Bacaxá fica antes de Jaconé a partir da posição em Bacaxá",()->{
+            PostRoutes.Point origin=PostRoutes.point(-22.89,-42.46);
+            if(!(PostRoutes.distance(origin,PostRoutes.point(-22.893,-42.457))<PostRoutes.distance(origin,PostRoutes.point(-22.924,-42.595))))throw new AssertionError();
+        });
+        test("Endereço divergente não reutiliza coordenada do posto",()->eq(PostRoutes.unit("ESF Bacaxá","Rua diferente, 30"),null));
+        test("Posto sem coordenadas não recebe distância inventada",()->eq(Double.isInfinite(PostRoutes.distance(PostRoutes.point(-22.89,-42.46),null)),true));
+        test("Latitude inválida é descartada",()->eq(PostRoutes.point(100,-42.46),null));
         System.out.println("TOTAL: "+passed+" verificações aprovadas; 0 falhas. Ambiente: JVM; não é execução Android.");
     }
 }

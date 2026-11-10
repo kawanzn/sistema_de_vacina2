@@ -27,7 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private static final int BLUE=0xff2563eb,NAVY=0xff142447,INK=0xff17253f,MUTED=0xff66758d,BG=0xfff5f7fc,GREEN=0xff087f65;
+    private static final int BLUE=0xff126251,NAVY=0xff102f2a,INK=0xff122e29,MUTED=0xff526761,BG=0xfff1f6f3,GREEN=0xff126251;
     private static final int SHARE=201,EXPORT=202,IMPORT=203;
     private Db db;
     private LinearLayout root,body;
@@ -43,6 +43,9 @@ public final class MainActivity extends Activity {
     private LinearLayout directoryList;
     private Button directoryRefresh;
     private TextView directoryStatus;
+    private ForegroundLocation foregroundLocation;
+    private PostRoutes.Point currentLocation;
+    private static final int LOCATION_PERMISSION=302;
     private final android.os.Handler cepHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private String cepRequested="";
     private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if(!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
@@ -56,7 +59,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("bookingPostName",bookingPostName);out.putString("bookingPostAddress",bookingPostAddress);out.putBoolean("staff",staff);out.putLong("citizen",citizen);out.putLong("rootCitizen",rootCitizen);out.putLong("editingPatient",editingPatient);out.putString("page",page);out.putString("identifyTarget",identifyTarget);out.putString("searchPatients",searchPatients);out.putString("searchStock",searchStock);out.putString("stockFilter",stockFilter);out.putString("searchAgenda",searchAgenda);out.putString("agendaFilter",agendaFilter);out.putString("searchReport",searchReport);out.putString("searchPosts",searchPosts);out.putString("shareToken",shareToken);out.putLong("post",selectedPost);out.putString("shareText",share.text());out.putString("shareState",share.state().name());}
     @Override protected void onResume(){super.onResume();if(!observingSync){android.content.IntentFilter filter=new android.content.IntentFilter("br.com.easyvacc.android.SYNC_UPDATED");if(Build.VERSION.SDK_INT>=33)registerReceiver(syncReceiver,filter,RECEIVER_NOT_EXPORTED);else registerReceiver(syncReceiver,filter);observingSync=true;}readShareResult();SyncJob.schedule(this);}
-    @Override protected void onPause(){if(observingSync){unregisterReceiver(syncReceiver);observingSync=false;}super.onPause();}
+    @Override protected void onPause(){if(foregroundLocation!=null)foregroundLocation.stop();if(observingSync){unregisterReceiver(syncReceiver);observingSync=false;}super.onPause();}
     @Override protected void onDestroy(){cepHandler.removeCallbacksAndMessages(null);if(db!=null)db.close();super.onDestroy();}
     private void readShareResult(){
         SharedPreferences prefs=getSharedPreferences("share_result",MODE_PRIVATE);
@@ -80,10 +83,10 @@ public final class MainActivity extends Activity {
     private void label(String value){body.addView(text(value,15,MUTED,false));gap(body,10);}
     private LinearLayout card(LinearLayout parent){LinearLayout c=column();c.setPadding(dp(18),dp(18),dp(18),dp(18));c.setBackground(bg(Color.WHITE,18));c.setElevation(dp(1));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(14);parent.addView(c,p);return c;}
     private void heading(String title,String sub){body.addView(text(title,27,INK,true));gap(body,6);if(!sub.isEmpty())body.addView(text(sub,14,MUTED,false));gap(body,22);}
-    private Button button(LinearLayout parent,String value,boolean primary,Task task){Button b=new Button(this);b.setText(value);b.setTextSize(14);b.setAllCaps(false);b.setMinHeight(dp(50));b.setPadding(dp(14),dp(7),dp(14),dp(7));b.setTextColor(primary?Color.WHITE:BLUE);b.setBackground(bg(primary?BLUE:0xffeaf0ff,12));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(10);parent.addView(b,p);b.setOnClickListener(v->{b.setEnabled(false);try{task.run();}catch(Exception e){error(e);}finally{b.setEnabled(true);}});return b;}
+    private Button button(LinearLayout parent,String value,boolean primary,Task task){Button b=new Button(this);b.setText(value);b.setTextSize(14);b.setAllCaps(false);b.setMinHeight(dp(50));b.setPadding(dp(14),dp(7),dp(14),dp(7));b.setTextColor(primary?Color.WHITE:BLUE);b.setBackground(bg(primary?BLUE:0xffe0f3e8,12));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(10);parent.addView(b,p);b.setOnClickListener(v->{b.setEnabled(false);try{task.run();}catch(Exception e){error(e);}finally{b.setEnabled(true);}});return b;}
     private void error(Exception e){String m=e.getMessage();if(e instanceof android.database.sqlite.SQLiteConstraintException)m="Confira os dados: CPF, cartão SUS ou lote já cadastrado, agendamento duplicado ou vínculo inválido.";new AlertDialog.Builder(this).setTitle("Não foi possível concluir").setMessage(m==null?"Tente novamente. Nenhuma confirmação foi registrada.":m).setPositiveButton("Entendi",null).show();}
     private void toast(String value){Toast.makeText(this,value,Toast.LENGTH_LONG).show();SyncJob.schedule(this);}
-    private void go(String next){dirty=false;page=next;render();}
+    private void go(String next){if(!next.equals("posts")&&foregroundLocation!=null)foregroundLocation.stop();dirty=false;page=next;render();}
     private boolean privatePage(){return Arrays.asList("home","patients","patientForm","dose","stock","stockForm","postForm","more","password","reports","sync").contains(page);}
     private void render(){
         if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty()){citizen=0;rootCitizen=0;}
@@ -91,9 +94,9 @@ public final class MainActivity extends Activity {
         if(!staff&&citizen<=0&&Arrays.asList("card","agenda","history").contains(page)){identifyTarget=page;page="identify";}
         ids=1000;root=column();root.setBackgroundColor(BG);
         root.setOnApplyWindowInsetsListener((v,insets)->{root.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
-        LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(dp(22),dp(12),dp(16),dp(12));
-        TextView brand=text("EasyVacc",22,NAVY,true);bar.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
-        TextView badge=text(staff?"PROFISSIONAL":"CIDADÃO",10,BLUE,true);badge.setPadding(dp(10),dp(7),dp(10),dp(7));badge.setBackground(bg(0xffe7eeff,20));bar.addView(badge);root.addView(bar);
+        LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setBackgroundColor(NAVY);bar.setPadding(dp(22),dp(12),dp(16),dp(12));
+        TextView brand=text("EasyVacc",22,Color.WHITE,true);bar.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
+        TextView badge=text(staff?"PROFISSIONAL":"CIDADÃO",10,BLUE,true);badge.setPadding(dp(10),dp(7),dp(10),dp(7));badge.setBackground(bg(0xffc9ecac,20));bar.addView(badge);root.addView(bar);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);body=column();body.setPadding(dp(22),dp(16),dp(22),dp(24));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         switch(page){
             case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "home":dashboard();break;
@@ -106,7 +109,7 @@ public final class MainActivity extends Activity {
         }
         LinearLayout nav=new LinearLayout(this);nav.setPadding(dp(8),dp(8),dp(8),dp(8));nav.setBackgroundColor(Color.WHITE);
         String[][] tabs=staff?new String[][]{{"Início","home"},{"Pessoas","patients"},{"Estoque","stock"},{"Agenda","agenda"},{"Mais","more"}}:new String[][]{{"Portal","portal"},{"Caderneta","identify"},{"Agenda","agenda"},{"Postos","posts"},{"Ajuda","help"}};
-        for(String[] tab:tabs){TextView n=text(tab[0],12,page.equals(tab[1])?BLUE:MUTED,page.equals(tab[1]));n.setGravity(Gravity.CENTER);n.setPadding(0,dp(15),0,dp(15));n.setMinHeight(dp(48));nav.addView(n,new LinearLayout.LayoutParams(0,-2,1));n.setOnClickListener(v->{if(tab[1].equals("identify"))identifyTarget="card";if(tab[1].equals("agenda")&&!staff&&citizen<=0)identifyTarget="agenda";if(dirty)confirmDiscard(tab[1]);else go(tab[1]);});}
+        for(String[] tab:tabs){TextView n=text(tab[0],12,page.equals(tab[1])?BLUE:MUTED,page.equals(tab[1]));if(page.equals(tab[1]))n.setBackground(bg(0xffe0f3e8,12));n.setGravity(Gravity.CENTER);n.setPadding(0,dp(15),0,dp(15));n.setMinHeight(dp(48));nav.addView(n,new LinearLayout.LayoutParams(0,-2,1));n.setOnClickListener(v->{if(tab[1].equals("identify"))identifyTarget="card";if(tab[1].equals("agenda")&&!staff&&citizen<=0)identifyTarget="agenda";if(dirty)confirmDiscard(tab[1]);else go(tab[1]);});}
         root.addView(nav);setContentView(root);root.requestApplyInsets();
     }
     private void confirmDiscard(String target){new AlertDialog.Builder(this).setTitle("Descartar alterações?").setMessage("Você ainda não salvou este formulário.").setNegativeButton("Continuar",null).setPositiveButton("Descartar",(d,w)->go(target)).show();}
@@ -120,20 +123,26 @@ public final class MainActivity extends Activity {
     private Spinner choice(LinearLayout parent,String title,List<Db.Row> rows,String kind){parent.addView(text(title,13,INK,true));Spinner s=new Spinner(this);ArrayList<String> names=new ArrayList<>();names.add("Selecione...");for(Db.Row r:rows)names.add(kind.equals("stock")?r.s("name")+" · "+r.s("lot")+" · "+r.s("post_name")+" ("+(r.n("qty")-r.n("reserved"))+" livres)":r.s("name"));ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,names);a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);s.setAdapter(a);s.setId(ids++);s.setMinimumHeight(dp(56));parent.addView(s,new LinearLayout.LayoutParams(-1,-2));gap(parent,12);return s;}
     private long selected(Spinner s,List<Db.Row> rows){int i=s.getSelectedItemPosition()-1;if(i<0||i>=rows.size())throw new IllegalArgumentException("Escolha uma opção na lista.");return rows.get(i).id();}
     private void welcome(){
-        heading("EasyVacc","Universidade de Vassouras · Sistema de Controle de Vacinas");
-        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffdce8ff,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,db.hasAccount()?"Entrar no painel":"Configurar acesso profissional",false,()->go("login"));
+        LinearLayout hero=card(body);hero.setBackground(bg(NAVY,22));
+        hero.addView(text("EASYVACC · SAQUAREMA",12,0xffc9ecac,true));
+        gap(hero,8);hero.addView(text("Vacinação mais perto de você.",29,Color.WHITE,true));
+        gap(hero,8);hero.addView(text("Encontre postos de saúde, consulte sua caderneta e organize seus próximos atendimentos.",15,0xffd1e8dd,false));
+        button(hero,"Encontrar postos",false,()->go("posts"));
+        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffe0f3e8,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,db.hasAccount()?"Entrar no painel":"Configurar acesso profissional",false,()->go("login"));
         LinearLayout portal=card(body);portal.setBackground(bg(GREEN,20));portal.addView(text("PORTAL DO CIDADÃO",11,0xffc9fff0,true));gap(portal,12);portal.addView(text("Sua saúde, à mão",25,Color.WHITE,true));gap(portal,8);portal.addView(text("Consulte a caderneta, encontre unidades e organize suas próximas doses.",15,Color.WHITE,false));button(portal,"Entrar no portal",false,()->{staff=false;citizen=0;rootCitizen=0;go("portal");});
         label("Trabalhe sem internet. No acesso profissional, conecte o servidor para sincronizar os registros quando houver conexão.");
     }
     private void portal(){
-        heading("Portal do Cidadão","Caderneta digital, unidades de saúde e próximos atendimentos.");
-        LinearLayout hero=card(body);hero.setBackground(bg(GREEN,20));hero.addView(text("Cuidar ficou mais simples.",25,Color.WHITE,true));gap(hero,10);hero.addView(text("Escolha abaixo o serviço que deseja acessar.",15,Color.WHITE,false));
+        LinearLayout hero=card(body);hero.setBackground(bg(NAVY,22));hero.addView(text("PORTAL DO CIDADÃO",12,0xffc9ecac,true));
+        gap(hero,8);hero.addView(text("Cuide da sua vacinação.",29,Color.WHITE,true));gap(hero,8);
+        hero.addView(text("Localize uma unidade em Saquarema, acompanhe suas doses e planeje a próxima visita.",15,0xffd1e8dd,false));
+        button(hero,"Encontrar postos",false,()->go("posts"));section("Seus serviços");
         button(body,"Consultar caderneta",true,()->identifyFor("card"));button(body,"Agendar nova dose",false,()->go("schedule"));button(body,"Meus agendamentos",false,()->identifyFor("agenda"));button(body,"Buscar postos e vacinas disponíveis",false,()->go("posts"));button(body,"Lembretes locais",false,()->startActivity(new Intent(this,ReminderActivity.class)));button(body,"Conversar com o assistente",false,()->go("help"));button(body,"Trocar para acesso profissional",false,()->go("login"));
         label(new SyncEngine(this).status());
     }
     private void identifyFor(String target){identifyTarget=target;if(citizen>0)go(target);else go("identify");}
     private void section(String title){gap(body,18);body.addView(text(title,19,INK,true));gap(body,12);}
-    private void badge(LinearLayout parent,String value,int color){TextView tag=text(value,12,color,true);tag.setPadding(dp(10),dp(6),dp(10),dp(6));tag.setBackground(bg(color==GREEN?0xffe5f7ef:color==BLUE?0xffeaf0ff:0xffffefea,10));parent.addView(tag);}
+    private void badge(LinearLayout parent,String value,int color){TextView tag=text(value,12,color,true);tag.setPadding(dp(10),dp(6),dp(10),dp(6));tag.setBackground(bg(color==GREEN?0xffe5f7ef:color==BLUE?0xffe0f3e8:0xffffefea,10));parent.addView(tag);}
     private Spinner filter(LinearLayout parent,String title,String[] items,String selected){parent.addView(text(title,13,INK,true));Spinner spinner=new Spinner(this);ArrayAdapter<String>a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,items);a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);spinner.setAdapter(a);spinner.setMinimumHeight(dp(52));for(int i=0;i<items.length;i++)if(items[i].equals(selected))spinner.setSelection(i);parent.addView(spinner);return spinner;}
     private final class LotPicker {
         final List<Db.Row> lots=new ArrayList<>();final Spinner lot;
@@ -210,16 +219,16 @@ public final class MainActivity extends Activity {
         List<Db.Row> children=db.rows("SELECT * FROM patients WHERE guardian_id=? ORDER BY name",String.valueOf(id));if(!children.isEmpty()){gap(body,12);body.addView(text("Dependentes",18,INK,true));for(Db.Row child:children)button(body,child.s("name"),false,()->{citizen=child.id();go("card");});}
     }
     private void posts(){
-        heading("Postos de Saquarema","Unidades da cidade disponíveis mesmo sem internet.");
+        heading("Encontre um posto","Saquarema · use sua localização ou busque por CEP, bairro ou nome.");
         if(staff)button(body,"Cadastrar unidade",true,()->go("postForm"));
         PublicDirectory directory=new PublicDirectory(this);
         String updated=directory.updated();
         label(updated.isEmpty()?"Lista municipal incluída no aplicativo · conferida em 22/10/2026.":"Catálogo online recebido em "+updated+". Sem internet, a lista salva continua disponível.");
         directoryStatus=text(directoryNotice,13,MUTED,false);body.addView(directoryStatus);
         EditText query=input(body,"Seu CEP, nome, bairro ou rua",searchPosts,InputType.TYPE_CLASS_TEXT);
-        query.setHint("Ex.: Bacaxá, Jaconé, Boqueirão ou Saquarema");
         LinearLayout list=column();directoryList=list;
-        button(body,"Buscar unidades",true,()->{searchPosts=value(query);searchPostsNow(list);});
+        button(body,"Localizar postos próximos",true,this::locatePosts);
+        button(body,"Buscar unidades",false,()->{searchPosts=value(query);searchPostsNow(list);});
         button(body,"Mostrar todos os postos",false,()->{query.setText("");searchPosts="";fillPosts(list);});
         directoryRefresh=button(body,directoryLoading?"Atualizando lista...":"Atualizar lista pela internet",false,()->refreshDirectory(list));directoryRefresh.setEnabled(!directoryLoading);
         query.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){}public void onTextChanged(CharSequence t,int start,int before,int count){searchPosts=t.toString();fillPosts(list);cepHandler.removeCallbacksAndMessages(null);if(Rules.fullCep(searchPosts))cepHandler.postDelayed(()->searchPostsNow(list),500);}public void afterTextChanged(android.text.Editable e){}});
@@ -246,8 +255,41 @@ public final class MainActivity extends Activity {
             final String message=result;runOnUiThread(()->{directoryLoading=false;directoryNotice=message;if(!isFinishing()&&!isDestroyed()&&page.equals("posts")&&directoryList!=null&&directoryList.isAttachedToWindow()){directoryRefresh.setText("Atualizar lista pela internet");directoryRefresh.setEnabled(true);directoryStatus.setText(message);fillPosts(directoryList);}});
         },"easyvacc-public-posts").start();
     }
+    private boolean locationGranted(String permission){return checkSelfPermission(permission)==android.content.pm.PackageManager.PERMISSION_GRANTED;}
+    private void locatePosts(){
+        String coarse=android.Manifest.permission.ACCESS_COARSE_LOCATION,fine=android.Manifest.permission.ACCESS_FINE_LOCATION;
+        if(!locationGranted(coarse)&&!locationGranted(fine)){requestPermissions(new String[]{fine,coarse},LOCATION_PERMISSION);return;}
+        if(foregroundLocation==null)foregroundLocation=new ForegroundLocation(this);
+        directoryStatus.setText("Buscando sua localização…");
+        foregroundLocation.start(locationGranted(fine),(location,message)->{
+            if(!page.equals("posts")||isFinishing()||isDestroyed())return;
+            PostRoutes.Point position=location==null?null:PostRoutes.point(location.getLatitude(),location.getLongitude());
+            if(position==null){directoryStatus.setText(message);return;}
+            currentLocation=position;
+            directoryStatus.setText("Postos exibidos por distância em linha reta."+
+                (location.hasAccuracy()&&location.getAccuracy()>1000?" Sua localização é aproximada.":""));
+            fillPosts(directoryList);
+        });
+    }
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
+        super.onRequestPermissionsResult(request,permissions,grants);
+        if(request!=LOCATION_PERMISSION||!page.equals("posts"))return;
+        if(locationGranted(android.Manifest.permission.ACCESS_COARSE_LOCATION)||locationGranted(android.Manifest.permission.ACCESS_FINE_LOCATION))locatePosts();
+        else directoryStatus.setText("Localização não autorizada. A busca por CEP, bairro ou nome continua disponível.");
+    }
+    private PostRoutes.Point postPoint(Db.Row p){return PostRoutes.unit(p.s("name"),p.s("address"));}
+    private void showPostRoute(Db.Row post){
+        PostRoutes.Point destination=postPoint(post);
+        String address=post.s("address")+", "+post.s("district")+(post.s("city").isEmpty()?"":", "+post.s("city")+" - "+post.s("state"));
+        Uri.Builder uri=Uri.parse("https://www.google.com/maps/dir/").buildUpon().appendQueryParameter("api","1")
+            .appendQueryParameter("destination",destination==null?address:destination.coordinates());
+        if(currentLocation!=null)uri.appendQueryParameter("origin",currentLocation.coordinates());
+        try{startActivity(new Intent(Intent.ACTION_VIEW,uri.build()));}
+        catch(ActivityNotFoundException e){throw new IllegalStateException("Nenhum aplicativo de mapas ou navegador foi encontrado.");}
+    }
     private void fillPosts(LinearLayout list){
         list.removeAllViews();List<Db.Row> posts=new PublicDirectory(this).all(db,searchPosts);
+        if(currentLocation!=null)Collections.sort(posts,(a,b)->Double.compare(PostRoutes.distance(currentLocation,postPoint(a)),PostRoutes.distance(currentLocation,postPoint(b))));
         org.json.JSONObject region=Rules.fullCep(searchPosts)?new CepLookup(this).saved(searchPosts):null;
         if(region!=null){list.addView(text("CEP "+Rules.digits(searchPosts)+" · "+region.optString("logradouro")+"\n"+region.optString("bairro")+" · "+region.optString("localidade")+" – "+region.optString("uf"),15,INK,true));list.addView(text("Postos da cidade, com os que citam o bairro primeiro. A lista não calcula distância nem define sua unidade de referência.",13,MUTED,false));gap(list,12);}
         else if(Rules.fullCep(searchPosts))list.addView(text("Para localizar a região deste CEP pela primeira vez, conecte à internet e toque em Buscar unidades. Depois a consulta fica salva para uso offline.",13,MUTED,false));
@@ -256,7 +298,9 @@ public final class MainActivity extends Activity {
         for(Db.Row p:posts){
             LinearLayout c=card(list);c.addView(text(p.s("name"),20,INK,true));
             c.addView(text(p.s("address")+"\n"+p.s("district")+(p.s("city").isEmpty()?"":" · "+p.s("city")+" – RJ")+(p.s("zip").isEmpty()?"":" · CEP "+p.s("zip")),14,MUTED,false));
-            button(c,"Selecionar e agendar",true,()->{bookingPostName=p.s("name");bookingPostAddress=p.s("address");go("schedule");});
+            if(currentLocation!=null){double km=PostRoutes.distance(currentLocation,postPoint(p));c.addView(text(Double.isInfinite(km)?"Sem coordenadas confirmadas para calcular a distância.":String.format(new Locale("pt","BR"),"%.1f km em linha reta",km),13,GREEN,true));}
+            button(c,"Ver rota no Google Maps",false,()->showPostRoute(p));
+            button(c,"Agendar nesta unidade",true,()->{bookingPostName=p.s("name");bookingPostAddress=p.s("address");go("schedule");});
             List<Db.Row> available=p.s("catalog").equals("true")?Collections.emptyList():db.rows("SELECT name,SUM(qty-reserved) AS free FROM stock WHERE post_id=? AND qty>reserved AND expiry>=? GROUP BY name",String.valueOf(p.id()),Rules.today());
             gap(c,12);
             if(available.isEmpty())c.addView(text(p.s("availability").isEmpty()?"Disponibilidade de vacinas não informada no aplicativo. Confirme com a unidade.":"Vacinas informadas na última atualização: "+p.s("availability")+". Confirme a disponibilidade com a unidade.",13,MUTED,false));
@@ -347,7 +391,7 @@ public final class MainActivity extends Activity {
         button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         button(body,"Alterar senha",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.2.0\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.3.0\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{staff=false;citizen=0;go("welcome");});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}

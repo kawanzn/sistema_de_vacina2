@@ -1,102 +1,15 @@
 {% extends 'vacinas/base_externo.html' %}
-{% load static %}
-<head>
-<link rel="shortcut icon" type="image/png" href="{% static 'vacinas/easyvacc.png' %}">
-    <title>EasyVacc</title>
-</head>
 {% block content %}
-<div class="index-escolha-viewport">
-<div class="container min-vh-100 d-flex flex-column justify-content-center py-5">    
-    <div class="text-center mb-4 animate-fade-in">
-        <img src="{% static 'vacinas/easyvacc.png' %}" alt="EasyVacc Logo" style="max-height: 100px; width: auto; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));">
-        <div class="mt-2">
-            <h1 class="fw-bold text-dark mb-0" style="font-size: 2rem;">EasyVacc</h1>
-            <p class="text-muted small mb-1">Universidade de Vassouras | Sistema de Controle de Vacinas</p>
-            <div class="mx-auto bg-primary rounded-pill" style="width: 40px; height: 3px;"></div>
-        </div>
-    </div>
-
-    <div class="row justify-content-center g-4">
-        
-        <div class="col-lg-5 col-md-6">
-            <div class="card border-0 shadow-lg transition-card overflow-hidden" style="border-radius: 20px;">
-                <div class="p-4 bg-gradient-blue text-white text-center position-relative">
-                    <i class="fas fa-user-md fa-3x mb-2 position-relative z-1"></i>
-                    <h4 class="fw-bold mb-0 position-relative z-1">Servidor Público</h4>
-                    <div class="decoration-circle"></div>
-                </div>
-                <div class="card-body p-4">
-                    <p class="text-muted small mb-3 text-center">Acesso restrito para profissionais de saúde realizarem controle e registros.</p>
-                    <a href="{% url 'login' %}" class="btn btn-primary btn-sm w-100 rounded-pill fw-bold py-2 shadow-sm hover-lift">
-                        Entrar no Painel <i class="fas fa-lock ms-2"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5 col-md-6">
-            <div class="card border-0 shadow-lg transition-card overflow-hidden" style="border-radius: 20px;">
-                <div class="p-4 bg-gradient-green text-white text-center position-relative">
-                    <i class="fas fa-id-card-alt fa-3x mb-2 position-relative z-1"></i>
-                    <h4 class="fw-bold mb-0 position-relative z-1">Portal do Cidadão</h4>
-                    <div class="decoration-circle"></div>
-                </div>
-                <div class="card-body p-4">
-                    <p class="text-muted small mb-3 text-center">Consulte sua caderneta digital, postos e próximas doses agendadas.</p>
-                    <a href="{% url 'portal_boas_vindas' %}" class="btn btn-success btn-sm w-100 rounded-pill fw-bold py-2 shadow-sm hover-lift">
-                        Entrar no Portal <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="text-center mt-4 opacity-50">
-        <p style="font-size: 0.7rem;" class="fw-bold mb-0">Desenvolvido por Alunos Da Univassouras - Saquarema/RJ</p>
-    </div>
+<section class="ev-hero">
+  <span class="ev-eyebrow">EasyVacc · Saquarema</span>
+  <h1>Vacinação mais perto de você.</h1>
+  <p>Encontre postos de saúde, consulte sua caderneta e organize seus próximos atendimentos.</p>
+  <a class="btn px-4" href="{% url 'busca_postos' %}"><i class="fa-solid fa-location-dot me-2" aria-hidden="true"></i>Encontrar postos</a>
+</section>
+<h2 class="ev-section-heading">Escolha seu acesso</h2>
+<div class="ev-service-grid">
+  {% include 'vacinas/service_card.html' with target='portal_boas_vindas' icon='fa-solid fa-address-card' label='Portal do cidadão' detail='Acesse sua caderneta, seus agendamentos e lembretes.' action='Entrar no portal' %}
+  {% include 'vacinas/service_card.html' with target='login' icon='fa-solid fa-user-shield' label='Painel profissional' detail='Gerencie pacientes, estoque, doses e atendimentos.' action='Acessar o painel' %}
 </div>
-</div>
-
-<style>
-    /* Fundo da landing (overflow no wrapper evita cortar botões position:fixed em alguns navegadores) */
-    body { background-color: #f8fafc; min-height: 100vh; }
-    .index-escolha-viewport {
-        overflow-x: hidden;
-        max-height: 100vh;
-        overflow-y: auto;
-    }
-
-    .bg-gradient-blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
-    .bg-gradient-green { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); }
-
-    .transition-card { transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
-    
-    /* Hover só para desktop para não bugar o toque no celular */
-    @media (min-width: 992px) {
-        .transition-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important; }
-    }
-    
-    .decoration-circle {
-        position: absolute; top: -15px; right: -15px; width: 80px; height: 80px;
-        background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 0;
-    }
-
-    .animate-fade-in { animation: fadeIn 0.8s ease-out; }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* O SEGREDO PARA CABER TUDO NO CELULAR */
-    @media (max-width: 576px) {
-        .container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-        img { max-height: 70px !important; } /* Diminui a logo */
-        h1 { font-size: 1.5rem !important; } /* Diminui o título */
-        .fa-3x { font-size: 2rem !important; } /* Diminui os ícones dos cards */
-        .p-4 { padding: 1rem !important; } /* Compacta o espaçamento interno */
-        .g-4 { gap: 1rem !important; } /* Aproxima um card do outro */
-        h4 { font-size: 1.1rem !important; }
-        p.small { font-size: 0.7rem !important; margin-bottom: 0.5rem !important; }
-    }
-</style>
+<footer class="ev-footer">Projeto acadêmico · Universidade de Vassouras · Saquarema, RJ</footer>
 {% endblock %}

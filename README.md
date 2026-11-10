@@ -1,5 +1,21 @@
 # EasyVacc Android
 
+## Web e APK 2.3.0 integrados
+
+O portal [EasyVacc](https://easyvacc-android-servidor.vercel.app/portal/) usa o mesmo banco
+do APK quando a sincronização do aplicativo está configurada com esse servidor. A versão
+Firebase da outra branch é uma demonstração separada e seus dados não foram migrados.
+
+O visual e os atalhos foram alinhados. Em Postos, a localização é solicitada somente ao tocar
+no botão e não fica salva. Os 18 pontos confirmados são os mesmos nas duas versões; o Maps
+abre o trajeto usando a localização apenas quando a pessoa escolhe abrir a rota. Sem internet,
+o APK mantém a consulta local e os registros; a rota depende do aplicativo de mapas.
+
+Os lembretes da web abrem um rascunho no APK completo. É preciso confirmar nele, e os alarmes
+continuam locais. Reservas exigem paciente e estoque reais; registros feitos offline são
+sincronizados automaticamente quando possível, e conflitos são apresentados para revisão.
+
+
 Aula 3: **lembretes locais** integrados ao Portal do Cidadão e a Mais do profissional.
 Permitem criar título/mensagem, escolher data/hora futura, consultar histórico e cancelar.
 Permissão Android 13+, canal, teste imediato e abertura ao tocar na notificação. Sem internet
@@ -10,7 +26,7 @@ ou conta para disparar; horário aproximado, sem alarmes exatos.
 permissão, cancelamento e abertura ao toque ainda precisam das evidências no dispositivo.
 
 
-[Baixar o APK Android 2.2.0](releases/EasyVacc-Android-2.2.0.apk).
+[Baixar o APK Android 2.2.0](releases/EasyVacc-Android-2.3.0.apk).
 
 Telas nativas para Servidor Público e Portal do Cidadão, cadastros, caderneta, estoque,
 aplicações, agenda, relatórios, assistente de uso e backup. Funciona com dados locais sem internet.
