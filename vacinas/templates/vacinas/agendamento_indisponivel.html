@@ -1,0 +1,9 @@
+{% extends 'vacinas/base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>Agendar dose</h1>
+  <p>O agendamento está indisponível nesta instância porque o cadastro de postos e estoque não pôde ser consultado.</p>
+  <p>Você ainda pode consultar os endereços de Saquarema. Para confirmar uma reserva, o EasyVacc precisa estar conectado ao banco de agendamentos.</p>
+  <a class="btn btn-primary" href="{% url 'busca_postos' %}">Ver postos de Saquarema</a>
+</div>
+{% endblock %}

@@ -6,7 +6,7 @@
         <h2 class="fw-bold text-dark d-flex align-items-center">
             <i class="fas fa-map-marked-alt me-3 text-primary"></i> Unidades de Saúde
         </h2>
-        <p class="text-muted">Localize o posto de vacinação mais próximo de você em Saquarema.</p>
+        <p class="text-muted">Consulte as unidades de saúde de Saquarema, RJ, por CEP, bairro ou nome.</p>
     </div>
 
     <div class="row">
@@ -18,7 +18,7 @@
                     <form action="" method="GET" class="mb-5">
                         <div class="input-group shadow-sm rounded-pill overflow-hidden border" style="height: 38px; border-color: #e2e8f0 !important;">
                             <input type="text" name="cep" class="form-control border-0 ps-4" 
-                                   placeholder="Digite seu CEP ou Bairro para localizar..." 
+                                   placeholder="Ex.: 28994-160 ou Bacaxá" aria-label="CEP, bairro ou nome da unidade"
                                    value="{{ cep_pesquisado|default:'' }}"
                                    style="height: 38px; font-size: 0.95rem; background: #fff; box-shadow: none;">
                             
@@ -33,11 +33,12 @@
                     <hr class="opacity-10 mb-5">
 
                     <div class="results-container">
+                        {% if aviso %}<p class="alert alert-info" role="status">{{ aviso }}</p>{% endif %}
                         {% if postos %}
                             <div class="mb-4">
                                 <h5 class="fw-bold text-dark">
                                     <i class="fas fa-clinic-medical me-2 text-primary"></i> 
-                                    Unidades Encontradas {% if bairro_localizado %}em {{ bairro_localizado }}{% endif %}
+                                    Unidades de Saquarema{% if bairro_localizado %} · Bairro do CEP: {{ bairro_localizado }}{% endif %}
                                 </h5>
                             </div>
 
@@ -66,10 +67,13 @@
                 {{ item.nome_vacina }}
             </span>
         {% endfor %}
-    {% else %}
+    {% elif posto.estoque_consultado %}
         <span class="text-muted italic" style="font-size: 0.65rem;">Sem estoque disponível</span>
+    {% else %}
+        <span class="text-muted small">Disponibilidade de vacinas não consultada.</span>
     {% endif %}
 </div>
+{% if posto.id %}<a class="btn btn-outline-primary btn-sm mt-2" href="{% url 'agendar_vacina' %}?posto={{ posto.id|urlencode }}">Selecionar e agendar</a>{% endif %}
 </div>
 </div>
                                         </div>
@@ -78,7 +82,7 @@
                                 {% endfor %}
                             </div>
 
-                        {% elif cep_pesquisado %}
+                        {% elif cep_pesquisado and not aviso %}
                             <div class="text-center py-5">
                                 <div class="bg-light d-inline-block p-4 rounded-circle mb-4">
                                     <i class="fas fa-map-marker-slash fa-4x text-muted opacity-50"></i>
@@ -93,7 +97,7 @@
                                 </div>
                                 <h4 class="text-secondary fw-bold">Onde você está?</h4>
                                 <p class="text-muted mx-auto" style="max-width: 450px;">
-                                    Digite seu CEP ou o nome do seu bairro para encontrarmos os postos de saúde mais próximos com vacinas disponíveis.
+                                    Digite um CEP, bairro ou nome de unidade para consultar o diretório municipal.
                                 </p>
                             </div>
                         {% endif %}

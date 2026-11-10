@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   class ReminderStore {
-    constructor({ storage, notify, close, now = Date.now, timer = setTimeout, clear = clearTimeout, onChange = () => {} }) {
+    constructor({ storage, notify, close, now = Date.now, timer = (fn, delay) => root.setTimeout(fn, delay), clear = id => root.clearTimeout(id), onChange = () => {} }) {
       Object.assign(this, { storage, notify, close, now, timer, clear, onChange });
       this.key = 'easyvacc-reminders-v1';
       this.timers = new Map();
@@ -40,15 +40,20 @@
       const item = this.find(id);
       if (!['criado', 'pausado', 'falha'].includes(item.state)) throw new Error('Este lembrete não pode ser agendado novamente.');
       if (item.at <= this.now()) throw new Error('O horário já passou. Crie um novo lembrete.');
-      item.state = 'agendado'; item.error = '';
-      try { this.save(); } catch (error) { item.state = 'falha'; throw error; }
+      const previous = { state: item.state, error: item.error };
       const tick = () => {
         if (item.state !== 'agendado') return;
         const remaining = item.at - this.now();
         if (remaining > 0) this.timers.set(id, this.timer(tick, Math.min(remaining, 2147483647)));
         else void this.fire(item);
       };
-      tick();
+      const handle = this.timer(tick, Math.min(item.at - this.now(), 2147483647));
+      this.timers.set(id, handle);
+      item.state = 'agendado'; item.error = '';
+      try { this.save(); }
+      catch (error) {
+        this.clear(handle); this.timers.delete(id); Object.assign(item, previous); throw error;
+      }
     }
     async fire(item) {
       this.timers.delete(item.id);

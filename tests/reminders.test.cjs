@@ -1,6 +1,34 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { ReminderStore } = require('../vacinas/static/vacinas/reminders-core.js');
+test('temporizadores Web são chamados com window e podem ser cancelados', async () => {
+ const vm = require('node:vm');
+ const fs = require('node:fs');
+ let value = '[]', handle;
+ const window = {
+   setTimeout(fn) { assert.equal(this, window); handle = fn; return 7; },
+   clearTimeout(id) { assert.equal(this, window); assert.equal(id, 7); handle = null; }
+ };
+ vm.runInNewContext(fs.readFileSync(require.resolve('../vacinas/static/vacinas/reminders-core.js'), 'utf8'),
+   { window, crypto: { randomUUID: () => 'browser-1' } });
+ const store = new window.EasyVaccReminders.ReminderStore({
+   storage: { getItem: () => value, setItem: (_, v) => { value = v; } },
+   now: () => 1000, notify: () => assert.fail('cancelado'), close: async () => {}
+ });
+ const { id } = store.create('Vacinação', 2000);
+ store.schedule(id);
+ assert.equal(typeof handle, 'function');
+ await store.cancel(id);
+ assert.equal(handle, null);
+});
+test('falha ao iniciar o timer não registra um agendamento falso', () => {
+ const h = setup();
+ const { id } = h.app.create('Vacinação', 2000);
+ h.app.timer = () => { throw new Error('timer indisponível'); };
+ assert.throws(() => h.app.schedule(id), /timer indisponível/);
+ assert.equal(h.app.find(id).state, 'criado');
+ assert.equal(JSON.parse(h.storage.getItem())[0].state, 'criado');
+});
 function setup(initial = '[]', notify) {
  let value = initial, now = 1000, seq = 0, calls = [], closed = [], timers = new Map();
  const storage = {getItem:()=>value,setItem:(_,v)=>{value=v;}};

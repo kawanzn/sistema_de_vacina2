@@ -63,7 +63,7 @@
                                 <select name="posto" id="id_posto" class="form-select shadow-sm rounded-4 border-light-subtle" style="height: 45px;">
                                     <option value="">Selecione o Posto de Saúde...</option>
                                     {% for posto in postos %}
-                                        <option value="{{ posto.id }}">{{ posto.nome }}</option>
+                                        <option value="{{ posto.id }}"{% if posto.id|stringformat:"s" == posto_selecionado %} selected{% endif %}>{{ posto.nome }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -129,5 +129,6 @@
             }
         });
     });
+    if ($("#id_posto").val()) $("#id_posto").trigger("change");
 </script>
 {% endblock %}

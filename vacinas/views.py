@@ -7,7 +7,6 @@ from django.contrib.auth.decorators import login_required
 from .models import Vacina, Paciente, Estoque, PostoSaude, Agendamento, OfflineSubmission
 from .forms import PacienteForm, VacinaForm, EstoqueForm
 from django.http import HttpResponse
-from django.db.models import Q
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
@@ -23,6 +22,9 @@ from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import Servidor
+from . import saquarema
+from google.api_core.exceptions import GoogleAPIError
+from google.auth.exceptions import GoogleAuthError
 
 
 class PostoForm(forms.ModelForm):
@@ -496,47 +498,35 @@ def cadastrar_estoque(request):
         form = EstoqueForm()
     return render(request, 'vacinas/cadastrar_estoque.html', {'form': form})
 
+@require_GET
 def busca_postos(request):
-    """
-    Função unificada para busca de postos por CEP ou Bairro (ViaCEP)
-    E agora carregando as vacinas disponíveis em cada um.
-    """
-    cep_digitado = request.GET.get('cep', '').strip()
-    postos_encontrados = PostoSaude.objects.none()
-    bairro_detectado = None 
-
-    if cep_digitado:
-        cep_limpo = cep_digitado.replace("-", "").replace(" ", "").replace(".", "")
-        
-        postos_encontrados = PostoSaude.objects.filter(
-            Q(cep=cep_digitado) | Q(cep=cep_limpo)
-        )
-
-        if not postos_encontrados.exists():
-            url = f"https://viacep.com.br/ws/{cep_limpo}/json/"
+    term = request.GET.get('cep', '').strip()[:120]
+    units = {
+        saquarema.key(unit['name']): dict(nome=unit['name'], bairro=unit['district'], endereco=unit['address'])
+        for unit in saquarema.directory()
+    }
+    if os.environ.get('FIREBASE_PROJECT_ID'):
+        try:
+            for post in PostoSaude.objects.all():
+                units[saquarema.key(post.nome)] = dict(
+                    id=post.pk, nome=post.nome, bairro=post.bairro, endereco=post.endereco, cep=post.cep
+                )
+        except (GoogleAPIError, GoogleAuthError):
+            pass  # The public directory remains usable without Firestore.
+    matches, neighborhood, notice = saquarema.search(term, list(units.values()))
+    for unit in matches:
+        if unit.get('id'):
             try:
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    dados = response.json()
-                    if 'erro' not in dados:
-                        bairro_detectado = dados.get('bairro')
-                        postos_encontrados = PostoSaude.objects.filter(bairro__icontains=bairro_detectado)
-            except:
-                pass 
-
-    for posto in postos_encontrados:
-        
-        from .models import Estoque # Importe dentro ou no topo do arquivo
-        posto.estoque_vacinas = [
-            item for item in Estoque.objects.filter(posto=posto, quantidade_atual__gt=0)
-            if item.disponivel_para_uso
-        ]
-
-    return render(request, 'vacinas/postos.html', {
-        'postos': postos_encontrados,
-        'bairro_localizado': bairro_detectado,
-        'cep_pesquisado': cep_digitado
-    })
+                unit['estoque_vacinas'] = [
+                    item for item in Estoque.objects.filter(posto_id=unit['id'], quantidade_atual__gt=0)
+                    if item.disponivel_para_uso
+                ]
+                unit['estoque_consultado'] = True
+            except (GoogleAPIError, GoogleAuthError):
+                continue
+    return render(request, 'vacinas/postos.html', dict(
+        postos=matches, bairro_localizado=neighborhood, cep_pesquisado=term, aviso=notice
+    ))
 
 @login_required
 def exportar_dados_csv(request):
@@ -611,10 +601,22 @@ def offline_bootstrap(request):
     return JsonResponse(payload)
 
 
-@atomic_view
 def agendar_vacina(request):
+    if os.environ.get('FIREBASE_PROJECT_ID'):
+        try:
+            return _agendar_vacina(request)
+        except (GoogleAPIError, GoogleAuthError):
+            pass
+    if request.method == 'POST':
+        error = _sync_error(request, 'Agendamento indisponível. O banco não pôde ser consultado.', status=503)
+        return error if error is not None else render(request, 'vacinas/agendamento_indisponivel.html', status=503)
+    return render(request, 'vacinas/agendamento_indisponivel.html')
+
+
+@atomic_view
+def _agendar_vacina(request):
     # Definimos a variável no topo para ela sempre existir
-    postos = PostoSaude.objects.all()
+    postos = list(PostoSaude.objects.all())
     
     if request.method == 'POST':
         if _offline_already_applied(request):
@@ -676,7 +678,7 @@ def agendar_vacina(request):
             messages.error(request, f"Erro no sistema: {e}")
 
     # Este retorno garante que o GET (carregamento inicial) funcione sem erro de 'postos'
-    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos})
+    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos, 'posto_selecionado': request.GET.get('posto', '')})
             
 @login_required
 def listar_agendamentos(request):
