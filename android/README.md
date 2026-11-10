@@ -1,11 +1,17 @@
 # EasyVacc Android
 
-Aplicativo Android nativo em Java, versão 1.1.0, para as Aulas 2 e 3.
+Aplicativo Android nativo em Java, versão 1.2.0, para as Aulas 2 e 3.
 Os dados ficam no aparelho; nenhuma chave Firebase ou senha do site é incluída.
 As telas do diretório e dos lembretes funcionam offline. Os lembretes não são
 sincronizados com os agendamentos do Django e não alteram reservas ou consultas.
 Esta versão didática usa o pacote `br.edu.easyvacc` e pode coexistir com o
 EasyVacc completo da branch main. Veja o [roteiro das aulas](AULAS-2-E-3.md).
+
+O botão **Abrir no app Android** no site preenche um rascunho. Confirme no
+aplicativo para o Android criar o alarme local. Depois de confirmar, pode sair
+da tela ou fechar o app pelos recentes. Forçar parada pelas configurações é
+diferente e pode impedir a entrega. O navegador não agenda avisos em segundo
+plano; os registros antigos podem ser transferidos manualmente.
 
 ## Funcionalidades
 

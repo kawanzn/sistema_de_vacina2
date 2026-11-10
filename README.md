@@ -143,6 +143,8 @@ Sem essa variável, os testes que acessam o Firestore são ignorados.
 O projeto nativo está na pasta [android](android/README.md). Ele reúne busca e
 compartilhamento de postos da Aula 2 e lembretes locais da Aula 3. Consulte o
 [roteiro e os resultados das Aulas 2 e 3](android/AULAS-2-E-3.md).
+O [APK 1.2.0](releases/EasyVacc-Melhoria-Aulas-1.2.0.apk) aceita rascunhos
+da página de lembretes; confirme no Android para receber o aviso fora da tela.
 O GitHub Actions compila um APK de desenvolvimento e executa os testes.
 Consulte [as execuções Android](https://github.com/kawanzn/sistema_de_vacina2/actions/workflows/android.yml)
 para conferir o resultado e baixar o artefato de uma execução bem-sucedida.

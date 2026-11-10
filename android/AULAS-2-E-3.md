@@ -1,8 +1,12 @@
 # EasyVacc — Aulas 2 e 3 na branch melhoria-firebase-vercel
 
-APK didático Android 1.1.0, Android 8 ou superior. O Django e o Firestore da branch
+APK didático Android 1.2.0, Android 8 ou superior. O Django e o Firestore da branch
 continuam separados do APK. Os lembretes são pessoais, para conferir a caderneta
 ou um compromisso; não confirmam uma consulta ou reserva de vacina.
+
+Na versão 1.2.0, a página web abre um rascunho no Android. Depois de confirmar
+no app, volte à tela inicial ou retire-o dos recentes para testar o CT05. O
+alarme pertence ao sistema Android e não precisa da página ou da tela aberta.
 
 ## Demonstrar no Android
 
@@ -43,7 +47,7 @@ igual a agora e futuro). Para cada execução, anote aparelho, versão Android,
 dados de teste, resultado observado e referência da evidência. Os testes JVM
 simulam APIs; o teste imediato não substitui o CT05.
 
-## Resultado da execução em 09/11/2026
+## Resultado da execução da versão 1.1.0 em 09/11/2026
 
 - Android, Gradle 8.13 e JDK 17: **14 testes Robolectric aprovados** (4 de postos
   e 10 de lembretes). APK debug compilado; lint concluído sem erros.
@@ -56,6 +60,15 @@ simulam APIs; o teste imediato não substitui o CT05.
 - Android físico/emulador: pendente. Nenhum aparelho foi detectado por USB e
   o emulador local não tinha aceleração disponível. As evidências da aula
   devem ser obtidas no dispositivo, conforme a tabela.
+
+## Verificação da versão 1.2.0
+
+- 15 testes Android em simulação aprovados; compilação e lint sem erros.
+- 14 testes JavaScript e 6 testes Django do diretório aprovados. A página
+  prepara um rascunho, sem gravar ou agendar outro lembrete no navegador.
+- A abertura do link preenche título e mensagem no Android sem criar alarme
+  antes da confirmação. O recebimento físico com o app fora da tela continua
+  como evidência a gravar no celular.
 
 ## Limitações
 

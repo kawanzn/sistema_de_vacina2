@@ -15,6 +15,7 @@ class SaquaremaTests(SimpleTestCase):
         self.assertContains(response, 'ESF Bacaxá')
         self.assertEqual(len(response.context['postos']), 21)
         self.assertContains(response, 'Disponibilidade de vacinas não consultada')
+        self.assertNotContains(response, 'Ex.: 28994-160 ou Bacaxá')
 
     def test_cep_with_or_without_mask_prioritizes_bacaxa(self):
         for cep in ('28994-160', '28994160'):

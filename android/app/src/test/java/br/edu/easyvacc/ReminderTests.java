@@ -79,6 +79,28 @@ public class ReminderTests {
         assertEquals(Reminder.PAUSED,repository.find(item.id).state);
     }
     @Test public void unknownIdentifierIsRejected() { assertThrows(IllegalArgumentException.class,() -> scheduler.schedule("missing")); }
+    @Test public void browserLinkFillsDraftWithoutCreatingAlarm() {
+        long future=System.currentTimeMillis()+3600000;
+        android.net.Uri uri=android.net.Uri.parse("easyvacc-aulas://lembrete/novo").buildUpon()
+            .appendQueryParameter("titulo","Retorno & revisão").appendQueryParameter("mensagem","Conferir no app")
+            .appendQueryParameter("quando",Long.toString(future)).build();
+        MainActivity activity=org.robolectric.Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_VIEW,uri)).setup().get();
+        assertEquals("Retorno & revisão",field(activity.getWindow().getDecorView(),"Título do lembrete"));
+        assertEquals("Conferir no app",field(activity.getWindow().getDecorView(),"Mensagem do lembrete"));
+        assertTrue(repository.list().isEmpty());
+        assertTrue(Shadows.shadowOf(app.getSystemService(AlarmManager.class)).getScheduledAlarms().isEmpty());
+    }
+    private String field(android.view.View view,String label) {
+        if(view instanceof android.widget.EditText && label.contentEquals(view.getContentDescription()))
+            return ((android.widget.EditText)view).getText().toString();
+        if(view instanceof android.view.ViewGroup){
+            android.view.ViewGroup group=(android.view.ViewGroup)view;
+            for(int i=0;i<group.getChildCount();i++){
+                String value=field(group.getChildAt(i),label);if(value!=null)return value;
+            }
+        }
+        return null;
+    }
     @Test @Config(sdk = 33) public void permissionDenialDoesNotSchedule() {
         Shadows.shadowOf(app).denyPermissions(android.Manifest.permission.POST_NOTIFICATIONS);
         Reminder item=create();

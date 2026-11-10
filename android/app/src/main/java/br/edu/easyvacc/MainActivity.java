@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -95,6 +96,22 @@ public final class MainActivity extends Activity {
         root.addView(text("Cancelar aqui remove somente o lembrete. Sua consulta ou reserva no sistema permanece inalterada.",13,false));
         list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL); root.addView(list);
         setContentView(scroll); render();
+        if (saved == null) readReminderLink(getIntent());
+    }
+    private void readReminderLink(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) return;
+        Uri uri = intent.getData();
+        if (uri == null || !"easyvacc-aulas".equals(uri.getScheme())
+                || !"lembrete".equals(uri.getHost()) || !"/novo".equals(uri.getPath())) return;
+        safely(() -> {
+            String heading = uri.getQueryParameter("titulo"), body = uri.getQueryParameter("mensagem");
+            long when;
+            try { when = Long.parseLong(uri.getQueryParameter("quando")); }
+            catch (NumberFormatException error) { throw new IllegalArgumentException("Escolha uma data e hora futuras."); }
+            Reminder.validate(heading, body, when, System.currentTimeMillis());
+            title.setText(heading); message.setText(body); selected = when; updateDate();
+            say("Confira os dados e toque em Agendar lembrete para confirmar neste aparelho.", false);
+        });
     }
     @Override protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out); out.putLong("selected",selected); out.putString("title",title.getText().toString());
