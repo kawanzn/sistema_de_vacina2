@@ -1,120 +1,56 @@
 {% extends 'vacinas/base.html' %}
-
+{% load static l10n %}
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="mb-4 ps-2">
-        <h2 class="fw-bold text-dark d-flex align-items-center">
-            <i class="fas fa-map-marked-alt me-3 text-primary"></i> Unidades de Saúde
-        </h2>
-        <p class="text-muted">Consulte as unidades de saúde de Saquarema, RJ, por CEP, bairro ou nome.</p>
+<div class="container py-4">
+  <h1 class="fw-bold">Postos de saúde de Saquarema</h1>
+  <form method="get" class="mb-3">
+    <label for="post-search" class="form-label">CEP, bairro ou nome do posto</label>
+    <div class="input-group">
+      <input id="post-search" type="search" name="cep" class="form-control" maxlength="120" value="{{ cep_pesquisado|default:'' }}">
+      <button type="submit" class="btn btn-outline-primary">Buscar</button>
     </div>
-
-    <div class="row">
-        <div class="col-12 col-lg-11 col-xl-10"> 
-            
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4 p-md-5">
-                    
-                    <form action="" method="GET" class="mb-5">
-                        <div class="input-group shadow-sm rounded-pill overflow-hidden border" style="height: 38px; border-color: #e2e8f0 !important;">
-                            <input type="text" name="cep" class="form-control border-0 ps-4" 
-                                   aria-label="CEP, bairro ou nome da unidade"
-                                   value="{{ cep_pesquisado|default:'' }}"
-                                   style="height: 38px; font-size: 0.95rem; background: #fff; box-shadow: none;">
-                            
-                            <button class="btn btn-primary px-5 fw-bold d-flex align-items-center justify-content-center" 
-                                    type="submit" style="height: 38px;">
-                                <i class="fas fa-search-location me-2"></i> 
-                                    <span>BUSCAR POSTO</span>
-                            </button>
-                        </div>
-                    </form>
-
-                    <hr class="opacity-10 mb-5">
-
-                    <div class="results-container">
-                        {% if aviso %}<p class="alert alert-info" role="status">{{ aviso }}</p>{% endif %}
-                        {% if postos %}
-                            <div class="mb-4">
-                                <h5 class="fw-bold text-dark">
-                                    <i class="fas fa-clinic-medical me-2 text-primary"></i> 
-                                    Unidades de Saquarema{% if bairro_localizado %} · Bairro do CEP: {{ bairro_localizado }}{% endif %}
-                                </h5>
-                            </div>
-
-                            <div class="row g-4">
-                                {% for posto in postos %}
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded-4 bg-light h-100 shadow-sm-hover transition-all">
-                                        <div class="d-flex align-items-start">
-                                            <div class="bg-primary bg-opacity-10 p-3 rounded-3 me-3">
-                                                <i class="fas fa-hospital text-primary fa-lg"></i>
-                                            </div>
-                                            <div>
-    <h6 class="fw-bold mb-1 text-dark">{{ posto.nome }}</h6>
-    <p class="text-muted small mb-2">
-        <i class="fas fa-map-pin me-1 text-danger"></i> {{ posto.endereco }}, {{ posto.bairro }}
-    </p>
-    
-    <div class="mt-3 pt-2 border-top">
-    <small class="fw-bold text-primary d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase;">
-        <i class="fas fa-syringe me-1"></i> Vacinas Disponíveis:
-    </small>
-   <div class="d-flex flex-wrap gap-1">
-    {% if posto.estoque_vacinas %}
-        {% for item in posto.estoque_vacinas %}
-            <span class="badge bg-white text-primary border border-primary-subtle rounded-pill" style="font-size: 0.65rem; font-weight: 500;">
-                {{ item.nome_vacina }}
-            </span>
-        {% endfor %}
-    {% elif posto.estoque_consultado %}
-        <span class="text-muted italic" style="font-size: 0.65rem;">Sem estoque disponível</span>
-    {% else %}
-        <span class="text-muted small">Disponibilidade de vacinas não consultada.</span>
-    {% endif %}
-</div>
-{% if posto.id %}<a class="btn btn-outline-primary btn-sm mt-2" href="{% url 'agendar_vacina' %}?posto={{ posto.id|urlencode }}">Selecionar e agendar</a>{% endif %}
-</div>
-</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-
-                        {% elif cep_pesquisado and not aviso %}
-                            <div class="text-center py-5">
-                                <div class="bg-light d-inline-block p-4 rounded-circle mb-4">
-                                    <i class="fas fa-map-marker-slash fa-4x text-muted opacity-50"></i>
-                                </div>
-                                <h5 class="text-muted">Nenhuma unidade de saúde localizada para este termo.</h5>
-                                <p class="small text-muted">Tente digitar o nome do bairro ou outro CEP.</p>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <div class="bg-light d-inline-block p-4 rounded-circle mb-4">
-                                    <i class="fas fa-search-location fa-4x text-primary opacity-50"></i>
-                                </div>
-                                <h4 class="text-secondary fw-bold">Onde você está?</h4>
-                                <p class="text-muted mx-auto" style="max-width: 450px;">
-                                    Digite um CEP, bairro ou nome de unidade para consultar o diretório municipal.
-                                </p>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                </div>
-            </div>
-
+  </form>
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {% if postos %}<button id="localizar-postos" type="button" class="btn btn-primary" hidden>Localizar postos próximos</button>{% endif %}
+    {% if cep_pesquisado %}<a class="btn btn-outline-secondary" href="{% url 'busca_postos' %}">Ver todos os postos</a>{% endif %}
+  </div>
+  <p id="localizacao-status" role="status" aria-live="polite" class="small text-muted"></p>
+  {% if aviso %}<p class="alert alert-info">{{ aviso }}</p>{% endif %}
+  {% if bairro_localizado %}<p>Bairro do CEP: {{ bairro_localizado }}</p>{% endif %}
+  <section id="posto-selecionado" class="card p-3 mb-4" tabindex="-1" hidden>
+    <h2 class="h5" id="posto-nome"></h2>
+    <p id="posto-endereco"></p>
+    <div class="d-flex flex-wrap gap-2">
+      <a id="posto-rota" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Ver rota no Google Maps</a>
+      <a id="posto-agendar" class="btn btn-outline-primary">Agendar nesta unidade</a>
+    </div>
+  </section>
+  <div id="lista-postos" class="row g-3">
+    {% for posto in postos %}
+      <article class="col-12 col-md-6"
+          data-lat="{{ posto.lat|default_if_none:''|unlocalize }}"
+          data-lon="{{ posto.lon|default_if_none:''|unlocalize }}"
+          data-nome="{{ posto.nome }}" data-endereco="{{ posto.endereco }}, {{ posto.bairro }}, Saquarema - RJ">
+        <div class="card p-3 h-100">
+          <h2 class="h5"><button class="btn btn-link text-start p-0 selecionar-posto" type="button" aria-controls="posto-selecionado" hidden>{{ posto.nome }}</button><span class="nome-sem-js">{{ posto.nome }}</span></h2>
+          <p>{{ posto.endereco }}, {{ posto.bairro }}</p>
+          <p class="distancia-posto small text-muted" hidden></p>
+          {% if posto.estoque_vacinas %}
+            <p class="small">Vacinas registradas: {% for item in posto.estoque_vacinas %}{{ item.nome_vacina }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+          {% elif posto.estoque_consultado %}
+            <p class="small text-muted">Sem estoque disponível.</p>
+          {% else %}
+            <p class="small text-muted">Disponibilidade de vacinas não consultada.</p>
+          {% endif %}
+          <div class="mt-auto">
+            <a class="agendar-posto btn btn-outline-primary btn-sm" href="{% url 'agendar_vacina' %}?{% if posto.publico %}unidade={{ posto.publico|urlencode }}{% else %}posto={{ posto.id|urlencode }}{% endif %}">Agendar nesta unidade</a>
+          </div>
         </div>
-    </div>
+      </article>
+    {% empty %}
+      {% if not aviso %}<p>Nenhuma unidade encontrada. Tente outro CEP, bairro ou nome.</p>{% endif %}
+    {% endfor %}
+  </div>
 </div>
-
-<style>
-    .shadow-sm-hover:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
-        transition: all 0.3s ease;
-    }
-</style>
+<script src="{% static 'vacinas/postos-localizacao.js' %}" defer></script>
 {% endblock %}

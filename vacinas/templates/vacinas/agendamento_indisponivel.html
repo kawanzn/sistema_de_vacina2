@@ -2,7 +2,12 @@
 {% block content %}
 <div class="container py-4">
   <h1>Agendar dose</h1>
+  {% if unidade %}<h2 class="h5">{{ unidade.name }}</h2><p>{{ unidade.address }}, {{ unidade.district }}</p>{% endif %}
+  {% if nao_cadastrada %}
+  <p>Esta unidade está no diretório, mas ainda não foi cadastrada no EasyVacc para receber reservas.</p>
+  {% else %}
   <p>O agendamento está indisponível nesta instância porque o cadastro de postos e estoque não pôde ser consultado.</p>
+  {% endif %}
   <p>Você ainda pode consultar os endereços de Saquarema. Para confirmar uma reserva, o EasyVacc precisa estar conectado ao banco de agendamentos.</p>
   <a class="btn btn-primary" href="{% url 'busca_postos' %}">Ver postos de Saquarema</a>
 </div>

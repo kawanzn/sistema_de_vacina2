@@ -19,6 +19,15 @@ def directory():
     return tuple(json.loads(Path(__file__).with_name('postos-saquarema.json').read_text(encoding='utf-8')))
 
 
+def unit_key(name):
+    return re.sub(r'^(esf|ubs|psf) ', '', key(name))
+
+
+def selected_unit(name):
+    wanted = unit_key(name)
+    return next((unit for unit in directory() if unit_key(unit['name']) == wanted), None)
+
+
 def lookup_cep(cep):
     if cep == '28994160':
         return {'bairro': 'Condado de Bacaxá (Bacaxá)', 'localidade': 'Saquarema', 'uf': 'RJ'}

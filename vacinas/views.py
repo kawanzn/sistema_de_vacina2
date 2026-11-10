@@ -502,15 +502,21 @@ def cadastrar_estoque(request):
 def busca_postos(request):
     term = request.GET.get('cep', '').strip()[:120]
     units = {
-        saquarema.key(unit['name']): dict(nome=unit['name'], bairro=unit['district'], endereco=unit['address'])
+        saquarema.unit_key(unit['name']): dict(
+            nome=unit['name'], bairro=unit['district'], endereco=unit['address'],
+            lat=unit.get('lat'), lon=unit.get('lon'), publico=unit['name']
+        )
         for unit in saquarema.directory()
     }
     if os.environ.get('FIREBASE_PROJECT_ID'):
         try:
             for post in PostoSaude.objects.all():
-                units[saquarema.key(post.nome)] = dict(
-                    id=post.pk, nome=post.nome, bairro=post.bairro, endereco=post.endereco, cep=post.cep
-                )
+                identifier = saquarema.unit_key(post.nome)
+                if identifier in units:
+                    units[identifier].update(id=post.pk, cep=post.cep)
+                else:
+                    units[identifier] = dict(id=post.pk, nome=post.nome, bairro=post.bairro,
+                                             endereco=post.endereco, cep=post.cep)
         except (GoogleAPIError, GoogleAuthError):
             pass  # The public directory remains usable without Firestore.
     matches, neighborhood, notice = saquarema.search(term, list(units.values()))
@@ -602,6 +608,7 @@ def offline_bootstrap(request):
 
 
 def agendar_vacina(request):
+    selected = saquarema.selected_unit(request.GET.get('unidade', '')[:120])
     if os.environ.get('FIREBASE_PROJECT_ID'):
         try:
             return _agendar_vacina(request)
@@ -609,14 +616,21 @@ def agendar_vacina(request):
             pass
     if request.method == 'POST':
         error = _sync_error(request, 'Agendamento indisponível. O banco não pôde ser consultado.', status=503)
-        return error if error is not None else render(request, 'vacinas/agendamento_indisponivel.html', status=503)
-    return render(request, 'vacinas/agendamento_indisponivel.html')
+        return error if error is not None else render(request, 'vacinas/agendamento_indisponivel.html', {'unidade': selected}, status=503)
+    return render(request, 'vacinas/agendamento_indisponivel.html', {'unidade': selected})
 
 
 @atomic_view
 def _agendar_vacina(request):
     # Definimos a variável no topo para ela sempre existir
     postos = list(PostoSaude.objects.all())
+    selected = saquarema.selected_unit(request.GET.get('unidade', '')[:120])
+    posto_selecionado = request.GET.get('posto', '')
+    if request.method == 'GET' and selected:
+        match = next((post for post in postos if saquarema.unit_key(post.nome) == saquarema.unit_key(selected['name'])), None)
+        if not match:
+            return render(request, 'vacinas/agendamento_indisponivel.html', {'unidade': selected, 'nao_cadastrada': True})
+        posto_selecionado = str(match.pk)
     
     if request.method == 'POST':
         if _offline_already_applied(request):
@@ -678,7 +692,7 @@ def _agendar_vacina(request):
             messages.error(request, f"Erro no sistema: {e}")
 
     # Este retorno garante que o GET (carregamento inicial) funcione sem erro de 'postos'
-    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos, 'posto_selecionado': request.GET.get('posto', '')})
+    return render(request, 'vacinas/agendar_vacina.html', {'postos': postos, 'posto_selecionado': posto_selecionado})
             
 @login_required
 def listar_agendamentos(request):

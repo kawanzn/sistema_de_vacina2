@@ -140,6 +140,20 @@ Sem essa variável, os testes que acessam o Firestore são ignorados.
 
 ## Aplicativo Android - lembretes de vacinação
 
+### Postos próximos no portal web
+
+Em **Postos**, use **Localizar postos próximos** e permita a localização do
+navegador. O cálculo é feito no aparelho e ordena as unidades exibidas por
+distância em linha reta. A localização não é salva no EasyVacc. **Ver rota no
+Google Maps** abre o trajeto da posição informada até o posto selecionado.
+
+O diretório usa os endereços da Prefeitura de Saquarema e coordenadas de 18
+unidades do [CNES/DATASUS](https://apidadosabertos.saude.gov.br/cnes/estabelecimentos?codigo_municipio=330550)
+conferidas em 10/11/2026. Madressilva, Rio Seco e Vilatur têm endereços
+divergentes nas fontes: continuam disponíveis por endereço, sem distância
+exibida. Agendar abre com a unidade selecionada quando há cadastro profissional;
+reservar depende do Firestore, paciente e estoque.
+
 O projeto nativo está na pasta [android](android/README.md). Ele reúne busca e
 compartilhamento de postos da Aula 2 e lembretes locais da Aula 3. Consulte o
 [roteiro e os resultados das Aulas 2 e 3](android/AULAS-2-E-3.md).
