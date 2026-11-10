@@ -1,0 +1,24 @@
+<nav class="ev-navigation" aria-label="{% if professional %}Painel profissional{% else %}Portal do cidadão{% endif %}">
+  <p class="ev-nav-label">{% if professional %}Área profissional{% else %}Portal do cidadão{% endif %}</p>
+  <div class="ev-nav-links">
+    {% if professional %}
+      {% include 'vacinas/nav_item.html' with target='home' icon='fa-solid fa-chart-line' label='Visão geral' %}
+      {% include 'vacinas/nav_item.html' with target='listar_pacientes' icon='fa-solid fa-users' label='Pacientes' %}
+      {% include 'vacinas/nav_item.html' with target='cadastrar_paciente' icon='fa-solid fa-user-plus' label='Novo paciente' %}
+      {% include 'vacinas/nav_item.html' with target='listar_estoque' icon='fa-solid fa-boxes-stacked' label='Estoque' %}
+      {% include 'vacinas/nav_item.html' with target='listar_agendamentos' icon='fa-solid fa-calendar-check' label='Agendamentos' %}
+      {% include 'vacinas/nav_item.html' with target='registrar_dose' icon='fa-solid fa-syringe' label='Registrar dose' %}
+      {% if user.is_superuser %}{% include 'vacinas/nav_item.html' with target='configuracoes' icon='fa-solid fa-gear' label='Administração' %}{% endif %}
+      {% include 'vacinas/nav_item.html' with target='portal_boas_vindas' icon='fa-solid fa-arrow-right' label='Portal do cidadão' %}
+      <button type="submit" form="logout-form" class="ev-nav-link"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span>Sair</span></button>
+    {% else %}
+      {% include 'vacinas/nav_item.html' with target='portal_boas_vindas' icon='fa-solid fa-house' label='Início' %}
+      {% include 'vacinas/nav_item.html' with target='busca_postos' icon='fa-solid fa-location-dot' label='Postos' %}
+      {% include 'vacinas/nav_item.html' with target='agendar_vacina' icon='fa-solid fa-calendar-plus' label='Agendar dose' %}
+      {% include 'vacinas/nav_item.html' with target='caderneta_paciente' icon='fa-solid fa-address-card' label='Caderneta' %}
+      {% include 'vacinas/nav_item.html' with target='meus_agendamentos' icon='fa-solid fa-calendar-days' label='Meus agendamentos' %}
+      {% include 'vacinas/nav_item.html' with target='lembretes' icon='fa-solid fa-bell' label='Lembretes' %}
+      {% if user.is_authenticated %}{% include 'vacinas/nav_item.html' with target='home' icon='fa-solid fa-chart-line' label='Painel profissional' %}{% endif %}
+    {% endif %}
+  </div>
+</nav>

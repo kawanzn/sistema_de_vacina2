@@ -3,9 +3,9 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EasyVacc | Gestão de Imunização</title>
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#10574a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,252 +19,30 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<style>
-    :root {
-        --sidebar-width: 240px;
-        --primary-color: #2563eb;
-        --bg-light: #f8fafc;
-        --border-color: #e2e8f0;
-        --text-slate: #64748b;
-    }
-
-    html, body {
-        overflow-x: hidden;
-        background-color: var(--bg-light);
-        font-family: 'Inter', sans-serif;
-        color: #1e293b;
-    }
-
-    /* --- SIDEBAR DESKTOP --- */
-    .sidebar { 
-        background: #ffffff; height: 100vh; position: fixed; 
-        top: 0; left: 0; width: var(--sidebar-width); z-index: 1000; 
-        border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto;
-    }
-    .sidebar::-webkit-scrollbar { width: 5px; }
-    .sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
-    
-    .logo-container { padding: 1.5rem 1rem; text-align: center; }
-    .logo-img { width: 100%; max-width: 130px; height: auto; }
-    
-    .nav-link {
-        padding: 0.7rem 1.2rem; color: var(--text-slate); display: flex !important;
-        align-items: center; text-decoration: none; font-weight: 500; font-size: 0.9rem;
-    }
-    .nav-link i { width: 28px; text-align: center; margin-right: 10px; }
-    .nav-link:hover, .nav-link.active { background: #eff6ff; color: var(--primary-color); border-right: 4px solid var(--primary-color); }
-    
-    .main-content { margin-left: var(--sidebar-width); padding: 2rem; width: calc(100% - var(--sidebar-width)); min-height: 100vh; }
-
-    /* --- PADRONIZAÇÃO DE TABELAS --- */
-    .table-responsive {
-        background: #ffffff;
-        border-radius: 15px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-    }
-    .table thead th {
-        background-color: #f1f5f9 !important;
-        color: var(--text-slate) !important;
-        font-size: 0.75rem !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        padding: 15px !important;
-        border-bottom: 2px solid var(--border-color) !important;
-    }
-    .table tbody td { padding: 14px 15px !important; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
-
-    /* --- PADRONIZAÇÃO DE FORMULÁRIOS (NOVO CADASTRO, DOSE, LOTE) --- */
-    .card, .content-card {
-        border-radius: 20px !important;
-        border: 1px solid var(--border-color) !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
-        padding: 1.5rem;
-        background: #ffffff;
-    }
-
-    .form-control, .form-select {
-        border-radius: 12px !important;
-        border: 1px solid var(--border-color) !important;
-        padding: 0.75rem 1rem !important;
-        font-size: 0.95rem !important;
-        background-color: #fcfdfe !important;
-        transition: all 0.2s ease;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--primary-color) !important;
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
-        background-color: #ffffff !important;
-    }
-
-    label {
-        font-weight: 600 !important;
-        color: var(--text-slate) !important;
-        margin-bottom: 0.5rem !important;
-        font-size: 0.85rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .btn-primary {
-        border-radius: 12px !important;
-        padding: 0.8rem 1.5rem !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease;
-    }
-
-    /* --- MOBILE REESTILIZADO --- */
-   @media (max-width: 991px) {
-    body { background-color: var(--bg-light); }
-    .sidebar { display: none !important; }
-    .main-content { margin-left: 0; width: 100%; padding: 1rem; padding-bottom: 120px; }
-
-    .mobile-app-nav {
-        display: flex !important; position: fixed; bottom: 24px; left: 50%;
-        transform: translateX(-50%); width: 92%; max-width: 420px;
-        background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px); border-radius: 24px; padding: 8px;
-        justify-content: space-evenly; align-items: center; z-index: 9999;
-        border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    }
-    .mobile-app-nav a { color: #86868b; font-size: 1.2rem; padding: 10px; transition: 0.3s; }
-    .mobile-app-nav a.active { color: var(--primary-color); transform: translateY(-2px); }
-
-    /* --- TABELA EM CARDS NO MOBILE --- */
-    .table-responsive { border: none !important; background: transparent !important; box-shadow: none !important; }
-    .table-mobile-cards thead { display: none !important; }
-    .table-mobile-cards tbody, .table-mobile-cards tr, .table-mobile-cards td { display: block !important; width: 100% !important; background-color: transparent !important; }
-    .table-mobile-cards tr { margin-bottom: 20px !important; background: #ffffff !important; border-radius: 20px !important; padding: 12px !important; border: 1px solid var(--border-color) !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important; }
-    .table-mobile-cards td { display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 12px 8px !important; border: none !important; border-bottom: 1px solid #f1f5f9 !important; min-height: 50px !important; }
-    .table-mobile-cards td:last-child { border-bottom: none !important; }
-    .table-mobile-cards td::before { content: attr(data-label); font-weight: 700 !important; color: var(--text-slate) !important; font-size: 0.7rem !important; text-transform: uppercase !important; flex: 1 !important; padding-right: 10px; text-align: left; }
-    .table-mobile-cards td > * { flex: 2 !important; text-align: right !important; font-size: 0.95rem; }
-
-    /* --- CORREÇÃO DOS BOTÕES E LUPAS (SÓ A LUPA NO MOBILE) --- */
-    .input-group {
-        display: flex !important;
-        flex-wrap: nowrap !important; 
-        background: #ffffff !important;
-        border-radius: 50px !important; 
-        padding: 5px !important; /* Espaço interno para o botão respirar */
-        border: 1px solid #e2e8f0 !important;
-        height: 50px !important; /* Altura padrão de app */
-        overflow: hidden;
-        align-items: center !important;
-    }
-
-    .input-group input {
-        flex: 1 !important;
-        min-width: 0 !important; /* Impede o input de empurrar o botão para fora */
-        border: none !important;
-        box-shadow: none !important;
-        padding-left: 15px !important;
-        font-size: 0.9rem !important;
-        background: transparent !important;
-    }
-
-    .input-group .btn {
-        border-radius: 50px !important;
-        width: 40px !important; /* Largura fixa para ficar redondo */
-        height: 40px !important; /* Altura fixa para ficar redondo */
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        margin: 0 !important;
-        flex-shrink: 0 !important; /* Impede o botão de amassar */
-    }
-
-    /* ESCONDE O TEXTO "CONSULTAR" DENTRO DO BOTÃO NO MOBILE */
-    .input-group .btn span, 
-    .input-group .btn strong {
-        display: none !important;
-    }
-
-    /* GARANTE QUE A LUPA FIQUE CENTRALIZADA E VISÍVEL */
-    .input-group .btn i {
-        margin: 0 !important;
-        font-size: 1rem !important;
-    }
-}
-</style>
+<link rel="stylesheet" href="{% static 'vacinas/easyvacc-ui.css' %}">
 </head>
-<body>
-    {% load static %} 
-    
-    <div class="sidebar">
-        <div class="logo-container">
-            <img src="{% static 'vacinas/easyvacc.png' %}" alt="easyvacc" class="logo-img">
-        </div>
-        <nav class="nav flex-column">
-            {% if user.is_superuser %}<a class="nav-link" href="{% url 'configuracoes' %}"><i class="fas fa-cog"></i> Administração</a>{% endif %}
-            {% if user.is_authenticated and "/caderneta/" not in request.path and "/postos/" not in request.path %}
-                <p class="menu-header" style="padding: 1.2rem 1.2rem 0.4rem; text-transform: uppercase; font-size: 0.65rem; font-weight: 700; color: #94a3b8;">Administração</p>
-                <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}"><i class="fas fa-chart-line"></i> Dashboard</a>
-                <a class="nav-link {% if 'agendamentos' in request.path %}active{% endif %}" href="{% url 'listar_agendamentos' %}">
-    <i class="fas fa-calendar-check"></i> Agendamentos
-</a>
-                <a class="nav-link {% if request.resolver_match.url_name == 'listar_pacientes' %}active{% endif %}" href="{% url 'listar_pacientes' %}"><i class="fas fa-users"></i> Pacientes</a>
-                <a class="nav-link {% if request.resolver_match.url_name == 'cadastrar_paciente' %}active{% endif %}" href="{% url 'cadastrar_paciente' %}"><i class="fas fa-user-plus"></i> Novo</a>
-                <a class="nav-link {% if request.resolver_match.url_name == 'registrar_dose' %}active{% endif %}" href="{% url 'registrar_dose' %}"><i class="fas fa-pills"></i> Dose</a>
-                <a class="nav-link {% if request.resolver_match.url_name == 'listar_estoque' %}active{% endif %}" href="{% url 'listar_estoque' %}"><i class="fas fa-boxes"></i> Estoque</a>
-                <!-- Seção de Área Restrita -->
-            <p class="menu-header" style="padding: 1.2rem 1.2rem 0.4rem; text-transform: uppercase; font-size: 0.65rem; font-weight: 700; color: #94a3b8; letter-spacing: 1px;">Área Restrita</p>
-                <a class="nav-link" href="/admin">
-            <i class="fas fa-user-shield" style="width: 28px; text-align: center; margin-right: 10px;"></i> 
-                <span>Painel Admin</span>
-                </a>
-                <a class="nav-link text-danger mt-4" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fas fa-sign-out-alt"></i> Sair</a>
-            {% else %}
-                <p class="menu-header" style="padding: 1.2rem 1.2rem 0.4rem; text-transform: uppercase; font-size: 0.65rem; font-weight: 700; color: #94a3b8;">Portal</p>
-                <a class="nav-link {% if 'caderneta' in request.path %}active{% endif %}" href="{% url 'caderneta_paciente' %}"><i class="fas fa-search"></i> Consultar Caderneta</a>
-                <a class="nav-link {% if '/agendar' in request.path %}active{% endif %}" href="{% url 'agendar_vacina' %}"><i class="fas fa-calendar-check"></i> Agendar Dose</a>
-                <a class="nav-link {% if 'meus-agendamentos' in request.path %}active{% endif %}" href="{% url 'meus_agendamentos' %}">
-    <i class="fas fa-clock-rotate-left"></i> Meus Agendamentos
-</a>
-                <a class="nav-link {% if 'postos' in request.path %}active{% endif %}" href="{% url 'busca_postos' %}"><i class="fas fa-map-marker-alt"></i> Buscar Postos</a>
-                <a class="nav-link mt-auto" href="{% url 'index_escolha' %}"><i class="fas fa-chevron-left"></i> Voltar</a>
-            {% endif %}
-        </nav>
-    </div>
-
-    <div class="main-content">
-
-        <div class="container-fluid">
-            {% block content %}{% endblock %}
-        </div>
-    </div>
-
-    {% if not user.is_authenticated or '/caderneta' in request.path or '/postos' in request.path or '/agendar' in request.path or 'meus-agendamentos' in request.path %}
-    {% include 'vacinas/portal_chatbot.html' %}
+<body class="ev-shell">
+<a class="ev-skip" href="#conteudo">Pular para o conteúdo</a>
+    {% with route=request.resolver_match.url_name %}
+    <aside class="ev-sidebar">
+        {% include 'vacinas/brand.html' %}
+        {% if user.is_authenticated and route != 'portal_boas_vindas' and route != 'caderneta_paciente' and route != 'busca_postos' and route != 'agendar_vacina' and route != 'meus_agendamentos' and route != 'lembretes' %}
+          {% include 'vacinas/navigation.html' with professional=True %}
+        {% else %}
+          {% include 'vacinas/navigation.html' %}
+        {% endif %}
+    </aside>
+    <main class="ev-main main-content" id="conteudo" tabindex="-1">
+        <div class="ev-page">{% block content %}{% endblock %}</div>
+    </main>
+    {% if not user.is_authenticated or route == 'portal_boas_vindas' or route == 'caderneta_paciente' or route == 'busca_postos' or route == 'agendar_vacina' or route == 'meus_agendamentos' %}
+        {% include 'vacinas/portal_chatbot.html' %}
     {% endif %}
-
+    {% endwith %}
     <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">{% csrf_token %}</form>
 
     {% include 'vacinas/pwa_install_guide.html' %}
 
-    <div class="mobile-app-nav d-md-none">
-        {% if user.is_authenticated and "/caderneta/" not in request.path and "/postos/" not in request.path %}
-            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}"><i class="fa-solid fa-chart-pie"></i></a>
-            <a href="{% url 'listar_estoque' %}" class="{% if 'estoque' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-boxes-stacked"></i></a>
-            <a href="{% url 'listar_agendamentos' %}" class="{% if 'agendamentos' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-calendar-check"></i></a>
-            <a href="{% url 'listar_pacientes' %}" class="{% if 'pacientes' in request.path %}active{% endif %}"><i class="fa-solid fa-user-group"></i></a>
-            <a href="{% url 'registrar_dose' %}" class="{% if 'dose' in request.path %}active{% endif %}"><i class="fa-solid fa-circle-plus"></i></a>
-            <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="text-danger"><i class="fa-solid fa-right-from-bracket"></i></a>
-        {% else %}
-            <a href="{% url 'caderneta_paciente' %}" class="{% if 'caderneta' in request.path %}active{% endif %}"><i class="fa-solid fa-address-card"></i></a>
-            <a href="{% url 'busca_postos' %}" class="{% if 'postos' in request.path %}active{% endif %}"><i class="fa-solid fa-map-location-dot"></i></a>
-            <a href="{% url 'agendar_vacina' %}" class="{% if '/agendar' in request.path %}active{% endif %}"><i class="fa-solid fa-calendar-plus"></i></a>
-            <a href="{% url 'meus_agendamentos' %}" class="{% if 'meus-agendamentos' in request.path %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left"></i></a>
-            <a href="{% url 'index_escolha' %}">
-              <i class="fa-solid fa-arrow-left"></i></a>
-        {% endif %}
-    </div>
-        
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
