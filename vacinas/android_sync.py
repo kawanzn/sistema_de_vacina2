@@ -220,7 +220,11 @@ def apply(data):
             # FK validation follows against the merged dataset, not old rows.
             for field in obj._meta.fields:
                 if not field.is_relation and not field.primary_key:
-                    field.clean(getattr(obj, field.attname), obj)
+                    value = getattr(obj, field.attname)
+                    # Public directory entries can have a confirmed address without a confirmed CEP.
+                    if table == 'posts' and field.name == 'cep' and value == '':
+                        continue
+                    field.clean(value, obj)
             parsed[table][obj.pk] = obj
     refs = {'patients':{'guardian_id':'patients'}, 'stock':{'post_id':'posts'}, 'appointments':{'patient_id':'patients','stock_id':'stock'}, 'doses':{'patient_id':'patients','stock_id':'stock','post_id':'posts'}}
     for table, fields in refs.items():

@@ -58,9 +58,26 @@ public final class NativeInstrumentation extends Instrumentation {
             JSONObject base=SyncEngine.normalized(new JSONObject(db.backup()));
             check("Merge recebe edição remota e mantém nova edição local independente",()->{JSONObject local=new JSONObject(base.toString()),remote=new JSONObject(base.toString());local.getJSONArray("patients").getJSONObject(0).put("address","Rua offline fictícia");remote.getJSONArray("posts").getJSONObject(0).put("name","Unidade editada");JSONObject merged=SyncEngine.merge(base,local,remote);if(!merged.getJSONArray("patients").getJSONObject(0).getString("address").equals("Rua offline fictícia")||!merged.getJSONArray("posts").getJSONObject(0).getString("name").equals("Unidade editada"))throw new AssertionError();});
             check("Merge recusa duas alterações incompatíveis no mesmo lote",()->{JSONObject local=new JSONObject(base.toString()),remote=new JSONObject(base.toString());local.getJSONArray("stock").getJSONObject(0).put("qty","2");remote.getJSONArray("stock").getJSONObject(0).put("qty","1");rejects(()->SyncEngine.merge(base,local,remote));});
+            check("Cadastro de lotes usa a unidade pública selecionada e preserva o vínculo",()->{
+                Db.Row unit=new PublicDirectory(getTargetContext()).all(db,"ESF Água Branca").get(0);
+                long total=db.count("posts");
+                rejects(()->db.stockAtPost("Vacina TESTE","LOTE-INVALIDO","5","31/12/2000","",unit));
+                eq(db.count("posts"),total);
+                long first=db.stockAtPost("Vacina TESTE","LOTE-A","5","31/12/2099","Fictício",unit);
+                long second=db.stockAtPost("Vacina TESTE","LOTE-B","5","31/12/2099","Fictício",unit);
+                long unitId=db.row("stock",first).n("post_id");
+                eq(db.row("stock",second).n("post_id"),unitId);
+                eq(db.count("posts"),total+1);
+                db.restore(db.backup());
+                if(!db.row("posts",unitId).s("name").equals(unit.s("name")))throw new AssertionError();
+                eq(db.freeStock(unitId).size(),2);
+            });
             Activity main=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
             check("Tela inicial é nativa e abre sem site",()->{if(!hasText(main.getWindow().getDecorView(),"EasyVacc"))throw new AssertionError("Marca não encontrada.");});
             check("CEP residencial 28994160 encontra postos sem internet",()->{PublicDirectory directory=new PublicDirectory(getTargetContext());java.util.List<Db.Row> units=directory.all(db,"28994160");if(units.size()<21||!Rules.key(units.get(0).s("name")).contains("bacaxa"))throw new AssertionError("Região de Bacaxá não localizada.");});
+            runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Entrar no painel"));waitForIdleSync();
+            check("Login do portal disponível sem criar acesso local",()->{if(!hasText(main.getWindow().getDecorView(),"Entrar com a conta do portal"))throw new AssertionError();});
+            runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Voltar"));waitForIdleSync();
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Entrar no portal"));waitForIdleSync();
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Agendar nova dose"));waitForIdleSync();
             check("Botão do portal abre tela própria de agendamento",()->{if(!hasText(main.getWindow().getDecorView(),"Agendar Nova Dose"))throw new AssertionError("Agendamento não abriu.");});

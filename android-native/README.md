@@ -1,6 +1,6 @@
-# EasyVacc Android 2.3.0
+# EasyVacc Android 2.3.1
 
-## Web e APK 2.3.0 integrados
+## Web e APK 2.3.1 integrados
 
 O portal [EasyVacc](https://easyvacc-android-servidor.vercel.app/portal/) usa o mesmo banco
 do APK quando a sincronização do aplicativo está configurada com esse servidor. A versão
@@ -32,7 +32,7 @@ tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.and
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.3.0.apk`. Escolha Servidor Público ou Portal do Cidadão.
+1. Instale `releases/EasyVacc-Android-2.3.1.apk`. Escolha Servidor Público ou Portal do Cidadão.
 2. No primeiro acesso profissional, configure usuário e senha locais.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.

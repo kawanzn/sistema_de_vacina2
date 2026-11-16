@@ -32,6 +32,8 @@ public final class MainActivity extends Activity {
     private Db db;
     private LinearLayout root,body;
     private boolean staff=false,dirty=false;
+    private boolean serverLoginRunning;
+    private String staffName="";
     private long citizen=0,selectedPost=0,editingPatient=0,rootCitizen=0;
     private String identifyTarget="card",searchStock="",stockFilter="Todos",searchAgenda="",agendaFilter="Todos",searchReport="";
     private String page="welcome",searchPosts="",searchPatients="",exportText="",shareToken="",shareNotice="";
@@ -99,7 +101,7 @@ public final class MainActivity extends Activity {
         TextView badge=text(staff?"PROFISSIONAL":"CIDADÃO",10,BLUE,true);badge.setPadding(dp(10),dp(7),dp(10),dp(7));badge.setBackground(bg(0xffc9ecac,20));bar.addView(badge);root.addView(bar);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);body=column();body.setPadding(dp(22),dp(16),dp(22),dp(24));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         switch(page){
-            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "home":dashboard();break;
+            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "localLogin":localLogin();break;case "home":dashboard();break;
             case "patients":patients();break;case "stock":stocks();break;case "stockForm":stockForm();break;
             case "posts":posts();break;case "postForm":postForm();break;case "share":sharePage();break;
             case "dose":doseForm();break;case "identify":identify();break;case "card":patientCard(citizen);break;
@@ -128,7 +130,7 @@ public final class MainActivity extends Activity {
         gap(hero,8);hero.addView(text("Vacinação mais perto de você.",29,Color.WHITE,true));
         gap(hero,8);hero.addView(text("Encontre postos de saúde, consulte sua caderneta e organize seus próximos atendimentos.",15,0xffd1e8dd,false));
         button(hero,"Encontrar postos",false,()->go("posts"));
-        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffe0f3e8,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,db.hasAccount()?"Entrar no painel":"Configurar acesso profissional",false,()->go("login"));
+        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffe0f3e8,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,"Entrar no painel",false,()->go("login"));
         LinearLayout portal=card(body);portal.setBackground(bg(GREEN,20));portal.addView(text("PORTAL DO CIDADÃO",11,0xffc9fff0,true));gap(portal,12);portal.addView(text("Sua saúde, à mão",25,Color.WHITE,true));gap(portal,8);portal.addView(text("Consulte a caderneta, encontre unidades e organize suas próximas doses.",15,Color.WHITE,false));button(portal,"Entrar no portal",false,()->{staff=false;citizen=0;rootCitizen=0;go("portal");});
         label("Trabalhe sem internet. No acesso profissional, conecte o servidor para sincronizar os registros quando houver conexão.");
     }
@@ -159,6 +161,51 @@ public final class MainActivity extends Activity {
         long selected(){return MainActivity.this.selected(lot,lots);}
     }
     private void login(){
+        heading("Acesso profissional","Entre com o usuário e a senha que você já usa no portal EasyVacc.");
+        EditText login=input(body,"Usuário do portal *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        EditText pass=input(body,"Senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        pass.setSaveEnabled(false);
+        label("O login com a conta do portal precisa de internet.");
+        Button enter=button(body,"Entrar com a conta do portal",true,()->{});
+        enter.setEnabled(!serverLoginRunning);
+        enter.setOnClickListener(v->{
+            if(serverLoginRunning)return;
+            String user=value(login),password=pass.getText().toString();
+            if(user.isEmpty()||password.isEmpty()){error(new IllegalArgumentException("Informe seu usuário e sua senha."));return;}
+            serverLoginRunning=true;
+            enter.setEnabled(false);
+            pass.setText("");
+            SyncEngine engine=new SyncEngine(this);
+            new Thread(()->{
+                try{
+                    String name=engine.connect(engine.server(),user,password);
+                    runOnUiThread(()->{
+                        serverLoginRunning=false;
+                        SyncJob.schedule(this);
+                        if(isFinishing()||isDestroyed()||!page.equals("login"))return;
+                        enterProfessional(name);
+                    });
+                }catch(Exception failure){
+                    runOnUiThread(()->{
+                        serverLoginRunning=false;
+                        if(isFinishing()||isDestroyed()||!page.equals("login"))return;
+                        enter.setEnabled(true);
+                        if(!enter.isAttachedToWindow())render();
+                        error(failure);
+                    });
+                }
+            },"easyvacc-login").start();
+        });
+        button(body,db.hasAccount()?"Entrar com o acesso local":"Criar acesso local para uso offline",false,()->go("localLogin"));
+        button(body,"Voltar",false,()->go("welcome"));
+    }
+    private void enterProfessional(String name){
+        staffName=name;
+        staff=true;
+        citizen=0;
+        go("home");
+    }
+    private void localLogin(){
         boolean setup=!db.hasAccount();heading(setup?"Vamos começar":"Bem-vindo de volta",setup?"Crie o acesso profissional deste aparelho.":"Entre com o usuário configurado neste aplicativo.");dirty=true;
         EditText name=setup?field("Nome do profissional *"):null;
         EditText login=input(body,"Usuário *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
@@ -167,11 +214,11 @@ public final class MainActivity extends Activity {
         if(setup)label("Use pelo menos 8 caracteres. Guarde a senha: o aplicativo não envia recuperação por e-mail.");
         button(body,setup?"Criar acesso e entrar":"Entrar",true,()->{
             if(setup){if(!value(pass).equals(value(repeat)))throw new IllegalArgumentException("As senhas não coincidem.");db.setup(value(name),value(login),value(pass));}
-            else if(!db.authenticate(value(login),value(pass)))throw new IllegalArgumentException("Usuário ou senha incorretos.");staff=true;citizen=0;go("home");
-        });button(body,"Voltar",false,()->go("welcome"));
+            else if(!db.authenticate(value(login),value(pass)))throw new IllegalArgumentException("Usuário ou senha incorretos.");enterProfessional(db.professionalName());
+        });button(body,"Voltar",false,()->go("login"));
     }
     private void dashboard(){
-        heading("Painel de Controle","Olá, "+db.professionalName().split(" ")[0]+". Organize os atendimentos de hoje.");
+        heading("Painel de Controle","Olá, "+staffName.split(" ")[0]+". Organize os atendimentos de hoje.");
         LinearLayout metric=card(body);metric.setBackground(bg(BLUE,20));metric.addView(text(db.count("patients")+" pacientes",28,Color.WHITE,true));gap(metric,10);metric.addView(text(db.count("doses")+" doses aplicadas · "+db.appointments(0,true).size()+" agendamentos",15,Color.WHITE,false));
         LinearLayout connection=card(body);connection.addView(text("Dados e sincronização",17,INK,true));connection.addView(text(new SyncEngine(this).status(),13,MUTED,false));button(connection,"Gerenciar conexão",false,()->go("sync"));
         button(body,"Registrar dose",true,()->go("dose"));button(body,"Cadastrar paciente",false,()->patientForm(0));button(body,"Agendar dose",false,()->go("schedule"));
@@ -336,9 +383,9 @@ public final class MainActivity extends Activity {
         for(Db.Row s:lots){boolean expired=s.s("expiry").compareTo(Rules.today())<0;LinearLayout c=card(body);c.addView(text(s.s("name"),19,INK,true));c.addView(text("Lote "+s.s("lot")+" · "+s.s("post_name")+"\nValidade: "+Rules.showDate(s.s("expiry")),14,MUTED,false));gap(c,10);c.addView(text(expired?"LOTE VENCIDO":(s.n("qty")-s.n("reserved"))+" livres · "+s.n("reserved")+" reservadas · "+s.n("qty")+" totais",14,expired?0xffb42318:GREEN,true));if(!expired)button(c,"Adicionar doses ao lote",false,()->{LinearLayout form=column();form.setPadding(dp(22),0,dp(22),0);EditText n=input(form,"Quantidade de entrada *","",InputType.TYPE_CLASS_NUMBER);AlertDialog d=new AlertDialog.Builder(this).setTitle("Entrada de estoque").setView(form).setNegativeButton("Cancelar",null).setPositiveButton("Confirmar",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(w->{try{db.addStock(s.id(),value(n));d.dismiss();go("stock");toast("Estoque atualizado.");}catch(Exception e){error(e);}}));d.show();});}
     }
     private void stockForm(){
-        heading("Novo lote","A validade e a unidade são obrigatórias.");dirty=true;List<Db.Row> posts=db.posts("");if(posts.isEmpty()){label("Cadastre uma unidade antes de incluir um lote.");button(body,"Cadastrar unidade",true,()->go("postForm"));return;}
+        heading("Novo lote","A validade e a unidade são obrigatórias.");dirty=true;List<Db.Row> posts=new PublicDirectory(this).all(db,"");if(posts.isEmpty()){label("Cadastre uma unidade antes de incluir um lote.");button(body,"Cadastrar unidade",true,()->go("postForm"));return;}
         EditText name=field("Nome da vacina *"),lot=field("Lote *"),amount=input(body,"Quantidade inicial *","",InputType.TYPE_CLASS_NUMBER),expiry=dateField(body,"Validade *","",false),supplier=field("Fornecedor");gap(body,16);Spinner post=choice(body,"Unidade de saúde *",posts,"");
-        button(body,"Salvar lote",true,()->{db.stock(value(name),value(lot),value(amount),value(expiry),value(supplier),selected(post,posts));toast("Lote cadastrado.");go("stock");});button(body,"Cancelar",false,()->confirmDiscard("stock"));
+        button(body,"Salvar lote",true,()->{int index=post.getSelectedItemPosition()-1;if(index<0||index>=posts.size())throw new IllegalArgumentException("Escolha uma unidade de saúde.");db.stockAtPost(value(name),value(lot),value(amount),value(expiry),value(supplier),posts.get(index));toast("Lote cadastrado.");go("stock");});button(body,"Cancelar",false,()->confirmDiscard("stock"));
     }
     private void doseForm(){
         heading("Registrar Dose","Selecione paciente, unidade e lote antes de confirmar.");dirty=true;List<Db.Row> patients=db.rows("SELECT * FROM patients ORDER BY name");
@@ -389,9 +436,9 @@ public final class MainActivity extends Activity {
         heading("Mais recursos","Gerencie os dados salvos neste aparelho.");button(body,"Lembretes locais",true,()->startActivity(new Intent(this,ReminderActivity.class)));button(body,"Sincronização com o servidor",true,()->go("sync"));button(body,"Relatório de aplicações",false,()->go("reports"));button(body,"Unidades de saúde",false,()->go("posts"));button(body,"Exportar relatório CSV",false,()->export(db.report(),"text/csv","EasyVacc-relatorio.csv"));
         button(body,"Salvar backup dos registros",false,()->new AlertDialog.Builder(this).setTitle("Salvar backup").setMessage("O arquivo contém os cadastros e históricos de vacinação. Escolha um local privado para guardá-lo. A senha profissional não é incluída.").setNegativeButton("Cancelar",null).setPositiveButton("Escolher local",(d,w)->{try{export(db.backup(),"application/json","EasyVacc-backup.json");}catch(Exception e){error(e);}}).show());
         button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
-        button(body,"Alterar senha",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
+        if(db.hasAccount())button(body,"Alterar senha do acesso local",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.3.0\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.3.1\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{staff=false;citizen=0;go("welcome");});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}
