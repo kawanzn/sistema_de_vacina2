@@ -33,9 +33,9 @@ tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.and
 ## Começar
 
 1. Instale `releases/EasyVacc-Android-2.3.0.apk`. Escolha Servidor Público ou Portal do Cidadão.
-2. No primeiro acesso profissional, configure usuário e senha locais.
+2. No primeiro acesso profissional, use **Entrar com a conta do servidor** para configurar o acesso local e sincronizar com as mesmas credenciais. Para uso sem servidor, ainda é possível criar uma conta local.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
-   O acesso local e a conta do site são separados. A senha do servidor não é salva no APK.
+   Esta opção manual continua disponível para aparelhos já configurados. O acesso local guarda apenas um hash da senha; a conexão guarda o token no armazenamento privado do app. Após reinstalar, entre novamente para recuperar os registros previamente sincronizados.
 4. Confira Sincronizar agora. Somente após uma resposta aceita os dados são apresentados como
    sincronizados. Sem conexão, os registros e a requisição pendente ficam preservados.
 

@@ -1,0 +1,26 @@
+name: Android integrado - validar login
+on:
+  push:
+    branches: [login-android-sincronizado]
+    paths: ['android-native/**', '.github/workflows/android-integrado.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: bash ./gradlew --no-daemon assembleDebug
+        working-directory: android-native
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: EasyVacc-integrado-login-debug
+          path: android-native/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

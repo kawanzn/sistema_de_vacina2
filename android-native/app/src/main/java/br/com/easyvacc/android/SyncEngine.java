@@ -19,7 +19,7 @@ public final class SyncEngine {
     public String status(){return prefs.getString("status","Sincronização não configurada.");}
     public String server(){return prefs.getString("server","https://easyvacc-android-servidor.vercel.app");}
     public void message(String value){prefs.edit().putString("status",value).commit();context.sendBroadcast(new android.content.Intent("br.com.easyvacc.android.SYNC_UPDATED").setPackage(context.getPackageName()));}
-    public void connect(String url,String user,String password)throws Exception{
+    public String connect(String url,String user,String password)throws Exception{
         URL parsed=new URL(url.trim());
         if(!parsed.getProtocol().equals("https")||parsed.getHost().isEmpty()||parsed.getUserInfo()!=null||parsed.getQuery()!=null||parsed.getRef()!=null||!(parsed.getPath().isEmpty()||parsed.getPath().equals("/")))throw new IllegalArgumentException("Informe somente o endereço HTTPS do servidor, por exemplo https://easyvacc-android-servidor.vercel.app.");
         String normalized="https://"+parsed.getAuthority();
@@ -28,7 +28,9 @@ public final class SyncEngine {
         }
         JSONObject credentials=new JSONObject().put("username",Rules.required(user,"usuário do servidor",150)).put("password",password);
         JSONObject result=request(normalized+"/api/android/login/",credentials,"");
+        String name=result.optString("name",user).trim();
         if(!prefs.edit().putString("server",normalized).putString("token",result.getString("token")).putString("status","Conectado. Aguardando sincronização.").commit())throw new IOException("Não foi possível salvar a conexão.");
+        return name.isEmpty()?user:name.substring(0,Math.min(name.length(),100));
     }
     public void disconnect()throws Exception{
         synchronized(SyncEngine.class){if(running)throw new IllegalStateException("Aguarde a sincronização terminar.");}

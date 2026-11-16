@@ -128,7 +128,7 @@ public final class MainActivity extends Activity {
         gap(hero,8);hero.addView(text("Vacinação mais perto de você.",29,Color.WHITE,true));
         gap(hero,8);hero.addView(text("Encontre postos de saúde, consulte sua caderneta e organize seus próximos atendimentos.",15,0xffd1e8dd,false));
         button(hero,"Encontrar postos",false,()->go("posts"));
-        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffe0f3e8,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,db.hasAccount()?"Entrar no painel":"Configurar acesso profissional",false,()->go("login"));
+        LinearLayout professional=card(body);professional.setBackground(bg(BLUE,20));professional.addView(text("SERVIDOR PÚBLICO",11,0xffe0f3e8,true));gap(professional,12);professional.addView(text("Painel profissional",25,Color.WHITE,true));gap(professional,8);professional.addView(text("Pacientes, aplicações, estoque e agendamentos em um só lugar.",15,Color.WHITE,false));button(professional,db.hasAccount()?"Entrar no painel":"Entrar com conta profissional",false,()->go("login"));
         LinearLayout portal=card(body);portal.setBackground(bg(GREEN,20));portal.addView(text("PORTAL DO CIDADÃO",11,0xffc9fff0,true));gap(portal,12);portal.addView(text("Sua saúde, à mão",25,Color.WHITE,true));gap(portal,8);portal.addView(text("Consulte a caderneta, encontre unidades e organize suas próximas doses.",15,Color.WHITE,false));button(portal,"Entrar no portal",false,()->{staff=false;citizen=0;rootCitizen=0;go("portal");});
         label("Trabalhe sem internet. No acesso profissional, conecte o servidor para sincronizar os registros quando houver conexão.");
     }
@@ -159,16 +159,57 @@ public final class MainActivity extends Activity {
         long selected(){return MainActivity.this.selected(lot,lots);}
     }
     private void login(){
-        boolean setup=!db.hasAccount();heading(setup?"Vamos começar":"Bem-vindo de volta",setup?"Crie o acesso profissional deste aparelho.":"Entre com o usuário configurado neste aplicativo.");dirty=true;
+        boolean setup=!db.hasAccount();heading(setup?"Vamos começar":"Bem-vindo de volta",setup?"Entre com a conta do servidor para recuperar os registros sincronizados ou configure um acesso só para este aparelho.":"Entre com o usuário configurado neste aplicativo.");dirty=true;
         EditText name=setup?field("Nome do profissional *"):null;
         EditText login=input(body,"Usuário *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
         EditText pass=input(body,"Senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        pass.setSaveEnabled(false);
         EditText repeat=setup?input(body,"Repita a senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD):null;
-        if(setup)label("Use pelo menos 8 caracteres. Guarde a senha: o aplicativo não envia recuperação por e-mail.");
+        if(setup){
+            repeat.setSaveEnabled(false);
+            Button online=button(body,"Entrar com a conta do servidor",true,()->{});
+            online.setOnClickListener(v->{
+                String username=value(login), password=pass.getText().toString();
+                View form=body;
+                pass.setText("");
+                setLoginWorking(form,true);
+                new Thread(()->{
+                    try{
+                        SyncEngine engine=new SyncEngine(getApplicationContext());
+                        if(username.isEmpty()||username.length()>60||password.length()<8||password.length()>128)
+                            throw new IllegalArgumentException("Informe um usuário de até 60 caracteres e uma senha de 8 a 128 caracteres.");
+                        try(Db local=new Db(getApplicationContext())){
+                            String professional=engine.connect(engine.server(),username,password);
+                            local.setup(professional,username,password);
+                        }
+                        boolean synced=engine.sync();
+                        runOnUiThread(()->{
+                            if(isFinishing()||isDestroyed())return;
+                            staff=true;citizen=0;go("home");
+                            toast(synced?"Acesso confirmado e registros sincronizados.":"Acesso confirmado. Confira a sincronização pendente no painel.");
+                        });
+                    }catch(Exception failure){
+                        runOnUiThread(()->{
+                            if(isFinishing()||isDestroyed())return;
+                            if(db.hasAccount())go("login");else setLoginWorking(form,false);
+                            error(failure);
+                        });
+                    }finally{SyncJob.schedule(getApplicationContext());}
+                },"easyvacc-first-login").start();
+            });
+            label("Para uso exclusivamente local, preencha também o nome e confirme a senha. Essa opção não recupera os registros do servidor.");
+        }
         button(body,setup?"Criar acesso e entrar":"Entrar",true,()->{
             if(setup){if(!value(pass).equals(value(repeat)))throw new IllegalArgumentException("As senhas não coincidem.");db.setup(value(name),value(login),value(pass));}
-            else if(!db.authenticate(value(login),value(pass)))throw new IllegalArgumentException("Usuário ou senha incorretos.");staff=true;citizen=0;go("home");
+            else if(!db.authenticate(value(login),pass.getText().toString()))throw new IllegalArgumentException("Usuário ou senha incorretos.");staff=true;citizen=0;go("home");
         });button(body,"Voltar",false,()->go("welcome"));
+    }
+    private void setLoginWorking(View view,boolean working){
+        if(view instanceof Button||view instanceof EditText)view.setEnabled(!working);
+        if(view instanceof android.view.ViewGroup){
+            android.view.ViewGroup group=(android.view.ViewGroup)view;
+            for(int i=0;i<group.getChildCount();i++)setLoginWorking(group.getChildAt(i),working);
+        }
     }
     private void dashboard(){
         heading("Painel de Controle","Olá, "+db.professionalName().split(" ")[0]+". Organize os atendimentos de hoje.");
