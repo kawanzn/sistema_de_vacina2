@@ -17,10 +17,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - run: bash ./gradlew --no-daemon assembleDebug
+      - run: bash ./gradlew --no-daemon assembleDemoDebug assembleNormalDebug testDemoDebugUnitTest
         working-directory: android-native
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: EasyVacc-integrado-login-debug
-          path: android-native/app/build/outputs/apk/debug/*.apk
+          name: EasyVacc-Professor
+          path: android-native/app/build/outputs/apk/demo/debug/*.apk
           if-no-files-found: error

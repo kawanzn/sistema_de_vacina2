@@ -243,6 +243,38 @@ public final class Db extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
         } finally {db.endTransaction();}
     }
+    public void prepareClassroomDemo() {
+        SQLiteDatabase data=getWritableDatabase();
+        data.beginTransaction();
+        try {
+            if (!syncValue("classroom_demo_seeded").isEmpty()) {
+                data.setTransactionSuccessful();
+                return;
+            }
+            long post=post("Unidade Fictícia Escola","Rua Exemplo, 100","Centro","28990000");
+            long second=post("Unidade Fictícia Jardim","Rua Exemplo, 200","Jardim","28990000");
+            long patient=patient(0,"Marina Exemplo","12/04/1995","","","","","Endereço fictício",0);
+            long dependent=patient(0,"Leo Exemplo","18/06/2017","","","","","Endereço fictício",patient);
+            long expiryTime=System.currentTimeMillis()+90L*86400000;
+            java.text.SimpleDateFormat day=new java.text.SimpleDateFormat("dd/MM/yyyy",java.util.Locale.ROOT);
+            java.text.SimpleDateFormat dateTime=new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm",java.util.Locale.ROOT);
+            String expiry=day.format(new java.util.Date(expiryTime));
+            long lot=stock("Vacina demonstrativa A","DEMO-001","25",expiry,"Material fictício",post);
+            long other=stock("Vacina demonstrativa B","DEMO-002","15",expiry,"Material fictício",second);
+            long expired=stock("Vacina demonstrativa A","DEMO-VENCIDO","5",expiry,"Material fictício",post);
+            ContentValues historical=new ContentValues();
+            historical.put("expiry",Rules.iso(day.format(new java.util.Date(System.currentTimeMillis()-86400000L))));
+            data.update("stock",historical,"id=?",new String[]{String.valueOf(expired)});
+            dose(patient,lot);
+            dose(dependent,other);
+            schedule(patient,other,dateTime.format(new java.util.Date(System.currentTimeMillis()+2L*86400000)));
+            long cancelled=schedule(dependent,lot,dateTime.format(new java.util.Date(System.currentTimeMillis()+3L*86400000)));
+            appointmentAction(cancelled,"cancelado","Exemplo de cancelamento em aula");
+            syncValue("classroom_demo_patient",String.valueOf(patient));
+            syncValue("classroom_demo_seeded","1");
+            data.setTransactionSuccessful();
+        } finally {data.endTransaction();}
+    }
     public void demo(){
         if(count("patients")>0||count("posts")>0)throw new IllegalArgumentException("A demonstração só pode ser carregada com cadastros vazios.");
         SQLiteDatabase data=getWritableDatabase();data.beginTransaction();

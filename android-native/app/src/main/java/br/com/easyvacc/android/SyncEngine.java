@@ -15,11 +15,12 @@ public final class SyncEngine {
     private final Context context;
     private final SharedPreferences prefs;
     public SyncEngine(Context c){context=c.getApplicationContext();prefs=context.getSharedPreferences("sync",Context.MODE_PRIVATE);}
-    public boolean configured(){return !prefs.getString("token","").isEmpty();}
+    public boolean configured(){return !MainActivity.isClassroomDemo(context)&&!prefs.getString("token","").isEmpty();}
     public String status(){return prefs.getString("status","Sincronização não configurada.");}
     public String server(){return prefs.getString("server","https://easyvacc-android-servidor.vercel.app");}
     public void message(String value){prefs.edit().putString("status",value).commit();context.sendBroadcast(new android.content.Intent("br.com.easyvacc.android.SYNC_UPDATED").setPackage(context.getPackageName()));}
     public String connect(String url,String user,String password)throws Exception{
+        if(MainActivity.isClassroomDemo(context))throw new IllegalStateException("A demonstração não sincroniza registros com o servidor.");
         URL parsed=new URL(url.trim());
         if(!parsed.getProtocol().equals("https")||parsed.getHost().isEmpty()||parsed.getUserInfo()!=null||parsed.getQuery()!=null||parsed.getRef()!=null||!(parsed.getPath().isEmpty()||parsed.getPath().equals("/")))throw new IllegalArgumentException("Informe somente o endereço HTTPS do servidor, por exemplo https://easyvacc-android-servidor.vercel.app.");
         String normalized="https://"+parsed.getAuthority();

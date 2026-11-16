@@ -1,4 +1,10 @@
-# EasyVacc Android 2.3.0
+# EasyVacc Android
+
+## APK de demonstração para o professor
+
+O pacote **EasyVacc Demo** abre diretamente no painel profissional e carrega dados fictícios no primeiro uso. Use **Abrir Portal do Cidadão** e **Voltar ao Painel Profissional** para alternar sem login. A caderneta usa Marina Exemplo, já selecionada. O banco é local e separado da versão normal; a sincronização de registros é desativada.
+
+O GitHub Actions gera **EasyVacc-Professor** usando `assembleDemoDebug` e verifica também a compilação da versão normal.
 
 ## Web e APK 2.3.0 integrados
 
