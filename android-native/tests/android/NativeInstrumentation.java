@@ -75,6 +75,16 @@ public final class NativeInstrumentation extends Instrumentation {
             Activity main=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
             check("Tela inicial é nativa e abre sem site",()->{if(!hasText(main.getWindow().getDecorView(),"EasyVacc"))throw new AssertionError("Marca não encontrada.");});
             check("CEP residencial 28994160 encontra postos sem internet",()->{PublicDirectory directory=new PublicDirectory(getTargetContext());java.util.List<Db.Row> units=directory.all(db,"28994160");if(units.size()<21||!Rules.key(units.get(0).s("name")).contains("bacaxa"))throw new AssertionError("Região de Bacaxá não localizada.");});
+            runOnMainSync(()->{
+                View root=main.getWindow().getDecorView();
+                if(!clickText(root,"Entrar com conta profissional")&&!clickText(root,"Entrar no painel"))throw new AssertionError();
+            });waitForIdleSync();
+            check("Login existente tem usuário e senha sem campos de criação",()->{
+                View root=main.getWindow().getDecorView();
+                if(!hasText(root,"Entrar com a conta do servidor")||!hasText(root,"Usuário *")||!hasText(root,"Senha *")
+                        ||hasText(root,"Nome do profissional")||hasText(root,"Repita a senha"))throw new AssertionError();
+            });
+            runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Voltar"));waitForIdleSync();
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Entrar no portal"));waitForIdleSync();
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Agendar nova dose"));waitForIdleSync();
             check("Botão do portal abre tela própria de agendamento",()->{if(!hasText(main.getWindow().getDecorView(),"Agendar Nova Dose"))throw new AssertionError("Agendamento não abriu.");});

@@ -111,7 +111,7 @@ public class MainActivity extends Activity {
     private boolean privatePage(){return Arrays.asList("home","patients","patientForm","dose","stock","stockForm","postForm","more","password","reports","sync").contains(page);}
     private void render(){
         if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty()){citizen=0;rootCitizen=0;}
-        if(classroomDemo() && (page.equals("login") || page.equals("sync") || page.equals("password"))){
+        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("sync") || page.equals("password"))){
             staff=true;page="home";
         }
         if(!staff&&privatePage())page="login";
@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
             if(!isClassroomDemo(this))button(body,"Sair da demonstração",false,this::finish);
         }
         switch(page){
-            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "home":dashboard();break;
+            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "localLogin":localLogin();break;case "home":dashboard();break;
             case "patients":patients();break;case "stock":stocks();break;case "stockForm":stockForm();break;
             case "posts":posts();break;case "postForm":postForm();break;case "share":sharePage();break;
             case "dose":doseForm();break;case "identify":identify();break;case "card":patientCard(citizen);break;
@@ -218,52 +218,70 @@ public class MainActivity extends Activity {
         }
     }
     private void login(){
-        boolean setup=!db.hasAccount();heading(setup?"Vamos começar":"Bem-vindo de volta","Entre com a conta do servidor ou use o acesso local deste aparelho.");dirty=true;
+        heading("Acesso profissional","Use o usuário e a senha da sua conta do EasyVacc. Para entrar pelo servidor, conecte-se à internet.");
+        dirty=true;
+        EditText login=input(body,"Usuário *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        EditText pass=input(body,"Senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        pass.setSaveEnabled(false);
+        Button online=button(body,"Entrar com a conta do servidor",true,()->{});
+        online.setOnClickListener(v->{
+            String username=value(login), password=pass.getText().toString();
+            View form=body;
+            pass.setText("");
+            setLoginWorking(form,true);
+            new Thread(()->{
+                try{
+                    SyncEngine engine=new SyncEngine(getApplicationContext());
+                    if(username.isEmpty()||password.isEmpty())
+                        throw new IllegalArgumentException("Informe o usuário e a senha da conta profissional.");
+                    String professional=engine.connect(engine.server(),username,password);
+                    try(Db local=new Db(getApplicationContext())){
+                        if(!local.hasAccount()&&username.length()<=60&&password.length()>=8&&password.length()<=128)
+                            local.setup(professional,username,password);
+                    }
+                    boolean synced=engine.sync();
+                    runOnUiThread(()->{
+                        if(isFinishing()||isDestroyed()||!form.isAttachedToWindow())return;
+                        enterProfessional(professional);
+                        toast(synced?"Acesso confirmado e registros sincronizados.":"Acesso confirmado. Confira a sincronização pendente no painel.");
+                    });
+                }catch(Exception failure){
+                    runOnUiThread(()->{
+                        if(isFinishing()||isDestroyed()||!form.isAttachedToWindow())return;
+                        setLoginWorking(form,false);
+                        error(failure);
+                    });
+                }finally{SyncJob.schedule(getApplicationContext());}
+            },"easyvacc-first-login").start();
+        });
+        button(body,db.hasAccount()?"Entrar com acesso local":"Criar acesso local",false,()->go("localLogin"));
+        button(body,"Voltar",false,()->go("welcome"));
+    }
+    private void localLogin(){
+        boolean setup=!db.hasAccount();
+        heading(setup?"Criar acesso local":"Acesso local","Use esta opção para entrar neste aparelho sem internet.");
+        dirty=true;
         EditText name=setup?field("Nome do profissional *"):null;
         EditText login=input(body,"Usuário *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
         EditText pass=input(body,"Senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
         pass.setSaveEnabled(false);
         EditText repeat=setup?input(body,"Repita a senha *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD):null;
         if(setup)repeat.setSaveEnabled(false);
-        {
-            Button online=button(body,"Entrar com a conta do servidor",true,()->{});
-            online.setOnClickListener(v->{
-                String username=value(login), password=pass.getText().toString();
-                View form=body;
-                pass.setText("");
-                setLoginWorking(form,true);
-                new Thread(()->{
-                    try{
-                        SyncEngine engine=new SyncEngine(getApplicationContext());
-                        if(username.isEmpty()||password.isEmpty())
-                            throw new IllegalArgumentException("Informe o usuário e a senha da conta profissional.");
-                        String professional=engine.connect(engine.server(),username,password);
-                        try(Db local=new Db(getApplicationContext())){
-                            if(!local.hasAccount()&&username.length()<=60&&password.length()>=8&&password.length()<=128)
-                                local.setup(professional,username,password);
-                        }
-                        boolean synced=engine.sync();
-                        runOnUiThread(()->{
-                            if(isFinishing()||isDestroyed()||!form.isAttachedToWindow())return;
-                            professionalSessionName=professional;
-                            staff=true;citizen=0;go("home");
-                            toast(synced?"Acesso confirmado e registros sincronizados.":"Acesso confirmado. Confira a sincronização pendente no painel.");
-                        });
-                    }catch(Exception failure){
-                        runOnUiThread(()->{
-                            if(isFinishing()||isDestroyed()||!form.isAttachedToWindow())return;
-                            if(db.hasAccount())go("login");else setLoginWorking(form,false);
-                            error(failure);
-                        });
-                    }finally{SyncJob.schedule(getApplicationContext());}
-                },"easyvacc-first-login").start();
-            });
-            if(setup)label("Para uso exclusivamente local, preencha também o nome e confirme a senha. Essa opção não recupera os registros do servidor.");
-        }
-        button(body,setup?"Criar acesso e entrar":"Entrar",true,()->{
-            if(setup){if(!value(pass).equals(value(repeat)))throw new IllegalArgumentException("As senhas não coincidem.");db.setup(value(name),value(login),value(pass));}
-            else if(!db.authenticate(value(login),pass.getText().toString()))throw new IllegalArgumentException("Usuário ou senha incorretos.");professionalSessionName=db.professionalName();staff=true;citizen=0;go("home");
-        });button(body,"Voltar",false,()->go("welcome"));
+        button(body,setup?"Criar acesso e entrar":"Entrar neste aparelho",true,()->{
+            String password=pass.getText().toString();
+            if(setup){
+                if(!password.equals(repeat.getText().toString()))throw new IllegalArgumentException("As senhas não coincidem.");
+                db.setup(value(name),value(login),password);
+            }else if(!db.authenticate(value(login),password))throw new IllegalArgumentException("Usuário ou senha incorretos.");
+            enterProfessional(db.professionalName());
+        });
+        button(body,"Voltar",false,()->go("login"));
+    }
+    private void enterProfessional(String name){
+        professionalSessionName=name;
+        staff=true;
+        citizen=0;
+        go("home");
     }
     private void setLoginWorking(View view,boolean working){
         if(view instanceof Button||view instanceof EditText)view.setEnabled(!working);
@@ -505,7 +523,7 @@ public class MainActivity extends Activity {
         if(!classroomDemo())button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         if(!classroomDemo()&&db.hasAccount())button(body,"Alterar senha local",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));
         if(db.count("patients")==0&&db.count("posts")==0)button(body,"Carregar demonstração fictícia",false,()->new AlertDialog.Builder(this).setTitle("Carregar dados fictícios?").setMessage("Adiciona uma pessoa, uma unidade e um lote identificados como demonstração. Use somente para conhecer o aplicativo.").setNegativeButton("Cancelar",null).setPositiveButton("Carregar",(d,w)->{try{db.demo();toast("Demonstração carregada.");go("home");}catch(Exception e){error(e);}}).show());
-        gap(body,18);label("EasyVacc Android 2.3.3\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
+        gap(body,18);label("EasyVacc Android 2.3.4\nModo offline · Sincronização HTTPS opcional\nProjeto acadêmico - Universidade de Vassouras\nPedro Marcos Quintanilha de Oliveira Nunes\nKawan Lopes Mangia");
         button(body,"Sair do acesso profissional",false,()->{if(classroomDemo())openDemoPortal();else{staff=false;citizen=0;go("welcome");}});
     }
     private void background(Button source,Task task){source.setEnabled(false);new Thread(()->{try{task.run();runOnUiThread(()->{if(!isFinishing()){source.setEnabled(true);if(page.equals("sync"))render();}});}catch(Exception e){runOnUiThread(()->{source.setEnabled(true);if(!isFinishing())error(e);});}},"easyvacc-connection").start();}

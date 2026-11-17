@@ -1,6 +1,6 @@
 # EasyVacc Android
 
-## Web e APK 2.3.3 integrados
+## Web e APK 2.3.4 integrados
 
 O portal [EasyVacc](https://easyvacc-android-servidor.vercel.app/portal/) usa o mesmo banco
 do APK quando a sincronização do aplicativo está configurada com esse servidor. A versão
@@ -26,7 +26,7 @@ ou conta para disparar; horário aproximado, sem alarmes exatos.
 permissão, cancelamento e abertura ao toque ainda precisam das evidências no dispositivo.
 
 
-[Baixar o APK Android 2.3.3](releases/EasyVacc-Android-2.3.3.apk).
+[Baixar o APK Android 2.3.4](releases/EasyVacc-Android-2.3.4.apk).
 
 Telas nativas para Servidor Público e Portal do Cidadão, cadastros, caderneta, estoque,
 aplicações, agenda, relatórios, assistente de uso e backup. Funciona com dados locais sem internet.
