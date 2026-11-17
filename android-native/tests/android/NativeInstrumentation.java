@@ -79,6 +79,18 @@ public final class NativeInstrumentation extends Instrumentation {
             runOnMainSync(()->clickText(main.getWindow().getDecorView(),"Agendar nova dose"));waitForIdleSync();
             check("Botão do portal abre tela própria de agendamento",()->{if(!hasText(main.getWindow().getDecorView(),"Agendar Nova Dose"))throw new AssertionError("Agendamento não abriu.");});
             runOnMainSync(main::finish);
+            Activity demo=startActivitySync(new Intent(getTargetContext(),ClassroomActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));waitForIdleSync();
+            check("APK completo oferece demonstração em atividade separada",()->{
+                View root=demo.getWindow().getDecorView();
+                if(!hasText(root,"DEMO · PAINEL")||!hasText(root,"Sair da demonstração"))throw new AssertionError();
+                try(Db demoDb=new Db(getTargetContext(),"easyvacc_classroom.db")){
+                    if(demoDb.syncValue("classroom_demo_seeded").isEmpty())throw new AssertionError();
+                }
+                try(Db activeDb=new Db(getTargetContext())){
+                    if(!activeDb.syncValue("classroom_demo_seeded").isEmpty())throw new AssertionError();
+                }
+            });
+            runOnMainSync(demo::finish);
             getTargetContext().deleteDatabase("reminder_instrumentation.db");
             try(ReminderStore reminders=new ReminderStore(getTargetContext(),"reminder_instrumentation.db")){
                 check("Aula3 banco de lembretes começa vazio",()->eq(reminders.all().size(),0));

@@ -31,7 +31,7 @@ public final class ReminderActivity extends Activity {
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(0xfff1f6f3);
         root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
         ScrollView scroll=new ScrollView(this);LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(22),dp(16),dp(22),dp(24));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,-1));
-        text(body,"Lembretes locais",27);
+        text(body,ReminderStore.isClassroom(this)?"Lembretes da demonstração":"Lembretes locais",27);
         text(body,"Lembre-se de consultar a caderneta ou de um compromisso. Funciona sem internet. Criar um lembrete não agenda atendimento nem reserva vacina.",15);
         text(body,"Evite CPF, nome de pacientes ou informações de saúde na mensagem. O conteúdo fica apenas neste aparelho; notificações podem ser vistas por outras pessoas.",13);
         access=text(body,"",14);notice=text(body,"",14);
@@ -63,7 +63,7 @@ public final class ReminderActivity extends Activity {
     }
     private void updateDate(){date.setText(chosen==0?"Escolher data e horário *":format.format(new Date(chosen)));}
     private void pick(){Calendar c=Calendar.getInstance();if(chosen>0)c.setTimeInMillis(chosen);else c.add(Calendar.MINUTE,5);new DatePickerDialog(this,(view,y,m,d)->{Calendar candidate=(Calendar)c.clone();candidate.set(y,m,d);new TimePickerDialog(this,(clock,h,min)->{candidate.set(Calendar.HOUR_OF_DAY,h);candidate.set(Calendar.MINUTE,min);candidate.set(Calendar.SECOND,0);candidate.set(Calendar.MILLISECOND,0);chosen=candidate.getTimeInMillis();updateDate();},c.get(Calendar.HOUR_OF_DAY),c.get(Calendar.MINUTE),true).show();},c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DAY_OF_MONTH)).show();}
-    private void refresh(){if(list==null)return;access.setText(ReminderScheduler.allowed(this)?"Notificações permitidas neste aparelho.":"Notificações bloqueadas. Permitir não cria um lembrete automaticamente.");list.removeAllViews();try(ReminderStore store=new ReminderStore(this)){
+    private void refresh(){if(list==null)return;access.setText(ReminderScheduler.allowed(this)?"Notificações permitidas neste aparelho.":"Notificações bloqueadas. Permitir não cria um lembrete automaticamente.");list.removeAllViews();try(ReminderStore store=ReminderStore.open(this,ReminderStore.isClassroom(this))){
         List<ReminderStore.Item> reminders=store.all();if(reminders.isEmpty())text(list,"Nenhum lembrete cadastrado.",15);
         int opened=getIntent().getIntExtra("reminder_id",-1);
         for(ReminderStore.Item item:reminders){LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(12),dp(12),dp(12),dp(12));card.setBackgroundColor(Color.WHITE);LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=dp(14);list.addView(card,params);

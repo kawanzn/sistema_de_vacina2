@@ -7,6 +7,13 @@ import java.util.*;
 
 /** Separate local database: reminders are never exported with clinical sync. */
 public final class ReminderStore extends SQLiteOpenHelper {
+    static final String DEMO_EXTRA="classroom_reminders";
+    static boolean isClassroom(Context context){
+        return context instanceof ReminderActivity && ((ReminderActivity)context).getIntent().getBooleanExtra(DEMO_EXTRA,false);
+    }
+    static ReminderStore open(Context context,boolean classroom){
+        return classroom?new ReminderStore(context,"easyvacc_classroom_reminders.db"):new ReminderStore(context);
+    }
     static final Object LOCK=new Object();
     public static final class Item {
         public int id;public String title,message,status;public long when,published;
