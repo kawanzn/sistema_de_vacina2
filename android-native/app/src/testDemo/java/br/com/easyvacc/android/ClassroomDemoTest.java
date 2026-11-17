@@ -27,9 +27,13 @@ public class ClassroomDemoTest {
         }
         return null;
     }
+    public static class OfflineActivity extends MainActivity {
+        @Override protected void connectClassroom() {}
+    }
     @Test public void opensPanelWithFixturesAndCanSwitchBothWays() {
-        try (org.robolectric.android.controller.ActivityController<MainActivity> controller =
-                Robolectric.buildActivity(MainActivity.class).setup()) {
+        try(Db db=new Db(RuntimeEnvironment.getApplication())){db.prepareClassroomDemo();db.syncValue("base","cached");}
+        try (org.robolectric.android.controller.ActivityController<OfflineActivity> controller =
+                Robolectric.buildActivity(OfflineActivity.class).setup()) {
             MainActivity activity = controller.get();
             View root = activity.getWindow().getDecorView();
             assertTrue(MainActivity.isClassroomDemo(activity));
@@ -52,10 +56,12 @@ public class ClassroomDemoTest {
             assertEquals(2, db.count("patients"));
         }
     }
-    @Test public void demoCannotConnectToRealServer() {
-        SyncEngine engine = new SyncEngine(RuntimeEnvironment.getApplication());
-        assertFalse(engine.configured());
-        assertThrows(IllegalStateException.class,
-            () -> engine.connect("https://example.invalid", "demo", "never-sent"));
+    @Test public void demoUsesPersistentSiteAndCanKeepServerSession() {
+        android.content.Context app=RuntimeEnvironment.getApplication();
+        SyncEngine engine = new SyncEngine(app);
+        assertEquals("https://easyvacc-two.vercel.app",engine.server());
+        app.getSharedPreferences("sync",0).edit().putString("token","test-session").commit();
+        assertTrue(engine.configured());
+        assertEquals("easyvacc_online_demo.db",new Db(app).getDatabaseName());
     }
 }

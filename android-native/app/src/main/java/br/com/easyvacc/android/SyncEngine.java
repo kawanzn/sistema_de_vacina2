@@ -15,14 +15,13 @@ public final class SyncEngine {
     private final Context context;
     private final SharedPreferences prefs;
     public SyncEngine(Context c){context=c.getApplicationContext();prefs=context.getSharedPreferences("sync",Context.MODE_PRIVATE);}
-    public boolean configured(){return !MainActivity.isClassroomDemo(context)&&!prefs.getString("token","").isEmpty();}
+    public boolean configured(){return !prefs.getString("token","").isEmpty();}
     public String status(){return prefs.getString("status","Sincronização não configurada.");}
-    public String server(){return prefs.getString("server","https://easyvacc-android-servidor.vercel.app");}
+    public String server(){return prefs.getString("server","https://easyvacc-two.vercel.app");}
     public void message(String value){prefs.edit().putString("status",value).commit();context.sendBroadcast(new android.content.Intent("br.com.easyvacc.android.SYNC_UPDATED").setPackage(context.getPackageName()));}
     public String connect(String url,String user,String password)throws Exception{
-        if(MainActivity.isClassroomDemo(context))throw new IllegalStateException("A demonstração não sincroniza registros com o servidor.");
         URL parsed=new URL(url.trim());
-        if(!parsed.getProtocol().equals("https")||parsed.getHost().isEmpty()||parsed.getUserInfo()!=null||parsed.getQuery()!=null||parsed.getRef()!=null||!(parsed.getPath().isEmpty()||parsed.getPath().equals("/")))throw new IllegalArgumentException("Informe somente o endereço HTTPS do servidor, por exemplo https://easyvacc-android-servidor.vercel.app.");
+        if(!parsed.getProtocol().equals("https")||parsed.getHost().isEmpty()||parsed.getUserInfo()!=null||parsed.getQuery()!=null||parsed.getRef()!=null||!(parsed.getPath().isEmpty()||parsed.getPath().equals("/")))throw new IllegalArgumentException("Informe somente o endereço HTTPS do servidor, por exemplo https://easyvacc-two.vercel.app.");
         String normalized="https://"+parsed.getAuthority();
         if(!server().equals(normalized)){
             try(Db local=new Db(context)){if(configured()||!local.syncValue("base").isEmpty()||!local.syncValue("pending").isEmpty())throw new IllegalArgumentException("Este banco já está vinculado a outro servidor. Preserve o backup e use uma instalação separada para outro banco.");}
@@ -32,6 +31,13 @@ public final class SyncEngine {
         String name=result.optString("name",user).trim();
         if(!prefs.edit().putString("server",normalized).putString("token",result.getString("token")).putString("status","Conectado. Aguardando sincronização.").commit())throw new IOException("Não foi possível salvar a conexão.");
         return name.isEmpty()?user:name.substring(0,Math.min(name.length(),100));
+    }
+    public void connectClassroom()throws Exception{
+        String url="https://easyvacc-two.vercel.app";
+        JSONObject result=request(url+"/api/android/classroom/",new JSONObject(),"");
+        if(!prefs.edit().putString("server",url).putString("token",result.getString("token"))
+            .putString("status","Conta de aula conectada. Carregando os registros.").commit())
+            throw new IOException("Não foi possível salvar a sessão de aula.");
     }
     public void disconnect()throws Exception{
         synchronized(SyncEngine.class){if(running)throw new IllegalStateException("Aguarde a sincronização terminar.");}

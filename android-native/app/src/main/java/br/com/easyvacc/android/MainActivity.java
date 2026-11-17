@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
     private static final int LOCATION_PERMISSION=302;
     private final android.os.Handler cepHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private String cepRequested="";
-    private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if(!classroomDemo()&&!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
+    private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if((!classroomDemo()||isClassroomDemo(this))&&!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
     private final SimpleDateFormat timestamp=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     static boolean isClassroomDemo(android.content.Context context){
         return context.getPackageName().equals("br.com.easyvacc.android.demo")
@@ -62,7 +62,8 @@ public class MainActivity extends Activity {
     }
     private void openDemoPortal(){
         staff=false;
-        citizen=Long.parseLong(db.syncValue("classroom_demo_patient"));
+        java.util.List<Db.Row> people=db.rows("SELECT id FROM patients ORDER BY CASE WHEN name=? THEN 0 ELSE 1 END, name LIMIT 1","Marina Exemplo");
+        citizen=people.isEmpty()?0:people.get(0).id();
         rootCitizen=citizen;
         go("portal");
     }
@@ -73,13 +74,27 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         if(saved!=null){staff=saved.getBoolean("staff",false);citizen=saved.getLong("citizen",0);rootCitizen=saved.getLong("rootCitizen",0);editingPatient=saved.getLong("editingPatient",0);page=saved.getString("page","welcome");identifyTarget=saved.getString("identifyTarget","card");searchPatients=saved.getString("searchPatients","");searchStock=saved.getString("searchStock","");stockFilter=saved.getString("stockFilter","Todos");searchAgenda=saved.getString("searchAgenda","");agendaFilter=saved.getString("agendaFilter","Todos");searchReport=saved.getString("searchReport","");searchPosts=saved.getString("searchPosts","");shareToken=saved.getString("shareToken","");selectedPost=saved.getLong("post",0);share.restore(saved.getString("shareText",""),saved.getString("shareState","READY"));if(page.equals("share")&&!share.text().isEmpty())page="share";}
         if(classroomDemo()){
-            db.prepareClassroomDemo();
-            if(saved==null){staff=true;page="home";}
+            if(!isClassroomDemo(this))db.prepareClassroomDemo();
+            if(saved==null){staff=true;page=isClassroomDemo(this)&&db.syncValue("base").isEmpty()?"connecting":"home";}
         }
         render();
+        if(isClassroomDemo(this))connectClassroom();
+    }
+    protected void connectClassroom(){
+        new Thread(()->{
+            try{
+                SyncEngine engine=new SyncEngine(getApplicationContext());
+                engine.connectClassroom();
+                if(!engine.sync())throw new java.io.IOException(engine.status());
+                runOnUiThread(()->{if(!isFinishing()&&!isDestroyed()){if(page.equals("connecting")){staff=true;page="home";}if(!dirty)render();}});
+                SyncJob.schedule(getApplicationContext());
+            }catch(Exception failure){
+                runOnUiThread(()->{if(!isFinishing()&&!isDestroyed()){if(page.equals("connecting")){render();label("Não foi possível conectar. Confira a internet e tente novamente.");button(body,"Tentar conexão novamente",true,()->{render();connectClassroom();});}else toast("Conexão pendente. Confira a sincronização no painel.");}});
+            }
+        },"easyvacc-classroom-online").start();
     }
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putString("bookingPostName",bookingPostName);out.putString("bookingPostAddress",bookingPostAddress);out.putBoolean("staff",staff);out.putLong("citizen",citizen);out.putLong("rootCitizen",rootCitizen);out.putLong("editingPatient",editingPatient);out.putString("page",page);out.putString("identifyTarget",identifyTarget);out.putString("searchPatients",searchPatients);out.putString("searchStock",searchStock);out.putString("stockFilter",stockFilter);out.putString("searchAgenda",searchAgenda);out.putString("agendaFilter",agendaFilter);out.putString("searchReport",searchReport);out.putString("searchPosts",searchPosts);out.putString("shareToken",shareToken);out.putLong("post",selectedPost);out.putString("shareText",share.text());out.putString("shareState",share.state().name());}
-    @Override protected void onResume(){super.onResume();if(!observingSync){android.content.IntentFilter filter=new android.content.IntentFilter("br.com.easyvacc.android.SYNC_UPDATED");if(Build.VERSION.SDK_INT>=33)registerReceiver(syncReceiver,filter,RECEIVER_NOT_EXPORTED);else registerReceiver(syncReceiver,filter);observingSync=true;}readShareResult();if(!classroomDemo())SyncJob.schedule(this);}
+    @Override protected void onResume(){super.onResume();if(!observingSync){android.content.IntentFilter filter=new android.content.IntentFilter("br.com.easyvacc.android.SYNC_UPDATED");if(Build.VERSION.SDK_INT>=33)registerReceiver(syncReceiver,filter,RECEIVER_NOT_EXPORTED);else registerReceiver(syncReceiver,filter);observingSync=true;}readShareResult();if(!classroomDemo()||isClassroomDemo(this))SyncJob.schedule(this);}
     @Override protected void onPause(){if(foregroundLocation!=null)foregroundLocation.stop();if(observingSync){unregisterReceiver(syncReceiver);observingSync=false;}super.onPause();}
     @Override protected void onDestroy(){cepHandler.removeCallbacksAndMessages(null);if(db!=null)db.close();super.onDestroy();}
     private void readShareResult(){
@@ -106,12 +121,12 @@ public class MainActivity extends Activity {
     private void heading(String title,String sub){body.addView(text(title,27,INK,true));gap(body,6);if(!sub.isEmpty())body.addView(text(sub,14,MUTED,false));gap(body,22);}
     private Button button(LinearLayout parent,String value,boolean primary,Task task){Button b=new Button(this);b.setText(value);b.setTextSize(14);b.setAllCaps(false);b.setMinHeight(dp(50));b.setPadding(dp(14),dp(7),dp(14),dp(7));b.setTextColor(primary?Color.WHITE:BLUE);b.setBackground(bg(primary?BLUE:0xffe0f3e8,12));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(10);parent.addView(b,p);b.setOnClickListener(v->{b.setEnabled(false);try{task.run();}catch(Exception e){error(e);}finally{b.setEnabled(true);}});return b;}
     private void error(Exception e){String m=e.getMessage();if(e instanceof android.database.sqlite.SQLiteConstraintException)m="Confira os dados: CPF, cartão SUS ou lote já cadastrado, agendamento duplicado ou vínculo inválido.";new AlertDialog.Builder(this).setTitle("Não foi possível concluir").setMessage(m==null?"Tente novamente. Nenhuma confirmação foi registrada.":m).setPositiveButton("Entendi",null).show();}
-    private void toast(String value){Toast.makeText(this,value,Toast.LENGTH_LONG).show();if(!classroomDemo())SyncJob.schedule(this);}
+    private void toast(String value){Toast.makeText(this,value,Toast.LENGTH_LONG).show();if(!classroomDemo()||isClassroomDemo(this))SyncJob.schedule(this);}
     private void go(String next){if(!next.equals("posts")&&foregroundLocation!=null)foregroundLocation.stop();dirty=false;page=next;render();}
     private boolean privatePage(){return Arrays.asList("home","patients","patientForm","dose","stock","stockForm","postForm","more","password","reports","sync").contains(page);}
     private void render(){
         if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty()){citizen=0;rootCitizen=0;}
-        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("sync") || page.equals("password"))){
+        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("password"))){
             staff=true;page="home";
         }
         if(!staff&&privatePage())page="login";
@@ -122,14 +137,14 @@ public class MainActivity extends Activity {
         TextView brand=text("EasyVacc",22,Color.WHITE,true);bar.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
         TextView badge=text(classroomDemo()?(staff?"DEMO · PAINEL":"DEMO · PORTAL"):(staff?"PROFISSIONAL":"CIDADÃO"),10,BLUE,true);badge.setPadding(dp(10),dp(7),dp(10),dp(7));badge.setBackground(bg(0xffc9ecac,20));bar.addView(badge);root.addView(bar);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);body=column();body.setPadding(dp(22),dp(16),dp(22),dp(24));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        if(classroomDemo()){
-            label("Demonstração de aula · Dados fictícios, salvos neste aparelho.");
+        if(classroomDemo()&&!page.equals("connecting")){
+            label("Conta de aula compartilhada · "+new SyncEngine(this).status());
             button(body,staff?"Abrir Portal do Cidadão":"Voltar ao Painel Profissional",true,
                 ()->{if(staff)openDemoPortal();else openDemoPanel();});
             if(!isClassroomDemo(this))button(body,"Sair da demonstração",false,this::finish);
         }
         switch(page){
-            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "localLogin":localLogin();break;case "home":dashboard();break;
+        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("password"))){
             case "patients":patients();break;case "stock":stocks();break;case "stockForm":stockForm();break;
             case "posts":posts();break;case "postForm":postForm();break;case "share":sharePage();break;
             case "dose":doseForm();break;case "identify":identify();break;case "card":patientCard(citizen);break;
@@ -293,7 +308,7 @@ public class MainActivity extends Activity {
     private void dashboard(){
         heading("Painel de Controle","Olá, "+(classroomDemo()?"Professor":(professionalSessionName.isEmpty()?db.professionalName():professionalSessionName).split(" ")[0])+". Organize os atendimentos de hoje.");
         LinearLayout metric=card(body);metric.setBackground(bg(BLUE,20));metric.addView(text(db.count("patients")+" pacientes",28,Color.WHITE,true));gap(metric,10);metric.addView(text(db.count("doses")+" doses aplicadas · "+db.appointments(0,true).size()+" agendamentos",15,Color.WHITE,false));
-        if(!classroomDemo()){LinearLayout connection=card(body);connection.addView(text("Dados e sincronização",17,INK,true));connection.addView(text(new SyncEngine(this).status(),13,MUTED,false));button(connection,"Gerenciar conexão",false,()->go("sync"));}
+        {LinearLayout connection=card(body);connection.addView(text("Dados e sincronização",17,INK,true));connection.addView(text(new SyncEngine(this).status(),13,MUTED,false));button(connection,"Gerenciar conexão",false,()->go("sync"));}
         button(body,"Registrar dose",true,()->go("dose"));button(body,"Cadastrar paciente",false,()->patientForm(0));button(body,"Agendar dose",false,()->go("schedule"));
         section("Relatório de aplicações");button(body,"Ver relatório completo e exportar",false,()->go("reports"));List<Db.Row> applied=db.applications();if(applied.isEmpty())label("Nenhuma aplicação registrada. Os registros aparecerão aqui após a confirmação.");for(Db.Row d:applied.subList(0,Math.min(5,applied.size())))applicationCard(body,d);
         section("Próximos atendimentos");List<Db.Row> pending=db.appointments(0,true);if(pending.isEmpty())label("Nenhum atendimento pendente.");for(Db.Row a:pending.subList(0,Math.min(4,pending.size()))){LinearLayout c=card(body);c.addView(text(a.s("patient_name"),17,INK,true));c.addView(text(a.s("vaccine")+"\n"+a.s("post_name")+"\n"+timestamp.format(new Date(a.n("when_at"))),14,MUTED,false));button(c,"Abrir agenda",false,()->go("agenda"));}
@@ -505,7 +520,7 @@ public class MainActivity extends Activity {
             button(body,"Escolher unidade",false,()->go("posts"));button(body,"Voltar",false,()->go(staff?"home":"portal"));return;
         }
         Spinner person=choice(body,"Identificação do cidadão *",patients,"");if(!staff){person.setSelection(1);person.setEnabled(false);}LotPicker picker=new LotPicker();EditText when=dateField(body,"3. Data e horário *","",true);
-        button(body,"Conferir agendamento",true,()->{long patient=selected(person,patients),lot=picker.selected();String at=value(when);Db.Row stock=db.row("stock",lot);long time=Rules.date(at,true).getTime();Rules.appointment(time,System.currentTimeMillis(),stock.s("expiry"),new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(time)));new AlertDialog.Builder(this).setTitle("Confirmar reserva?").setMessage(db.row("patients",patient).s("name")+"\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n"+at).setNegativeButton("Voltar e conferir",null).setPositiveButton("Confirmar agendamento",(d,w)->{try{db.schedule(patient,lot,at);toast(classroomDemo()?"Agendamento fictício salvo neste aparelho.":"Agendamento salvo. A reserva será enviada na sincronização.");bookingPostName="";bookingPostAddress="";go("agenda");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard(staff?"home":"portal"));
+        button(body,"Conferir agendamento",true,()->{long patient=selected(person,patients),lot=picker.selected();String at=value(when);Db.Row stock=db.row("stock",lot);long time=Rules.date(at,true).getTime();Rules.appointment(time,System.currentTimeMillis(),stock.s("expiry"),new SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).format(new Date(time)));new AlertDialog.Builder(this).setTitle("Confirmar reserva?").setMessage(db.row("patients",patient).s("name")+"\n"+stock.s("name")+" · lote "+stock.s("lot")+"\n"+db.row("posts",stock.n("post_id")).s("name")+"\n"+at).setNegativeButton("Voltar e conferir",null).setPositiveButton("Confirmar agendamento",(d,w)->{try{db.schedule(patient,lot,at);toast(classroomDemo()?"Agendamento de aula salvo. Sincronização agendada.":"Agendamento salvo. A reserva será enviada na sincronização.");bookingPostName="";bookingPostAddress="";go("agenda");}catch(Exception e){error(e);}}).show();});button(body,"Cancelar",false,()->confirmDiscard(staff?"home":"portal"));
     }
     private void agenda(boolean history){
         if(!staff&&citizen<=0){identifyTarget=history?"history":"agenda";go("identify");return;}heading(history?"Histórico de agendamentos":"Agendamentos",history?"Atendimentos concluídos e cancelamentos.":"Confira os próximos atendimentos.");
@@ -518,7 +533,7 @@ public class MainActivity extends Activity {
     }
     private void appointmentReason(long id,String action){LinearLayout form=column();form.setPadding(dp(22),0,dp(22),0);EditText reason=input(form,"Justificativa *","",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);AlertDialog dialog=new AlertDialog.Builder(this).setTitle(action.equals("ausente")?"Não comparecimento":"Cancelar agendamento").setView(form).setNegativeButton("Voltar",null).setPositiveButton("Confirmar",null).create();dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(w->{try{db.appointmentAction(id,action,value(reason));dialog.dismiss();toast("Agendamento encerrado e reserva liberada.");go("agenda");}catch(Exception e){error(e);}}));dialog.show();}
     private void more(){
-        heading("Mais recursos","Gerencie os dados salvos neste aparelho.");button(body,"Lembretes locais",true,this::openReminders);if(!classroomDemo())button(body,"Sincronização com o servidor",true,()->go("sync"));button(body,"Relatório de aplicações",false,()->go("reports"));button(body,"Unidades de saúde",false,()->go("posts"));button(body,"Exportar relatório CSV",false,()->export(db.report(),"text/csv","EasyVacc-relatorio.csv"));
+        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("password"))){
         button(body,"Salvar backup dos registros",false,()->new AlertDialog.Builder(this).setTitle("Salvar backup").setMessage("O arquivo contém os cadastros e históricos de vacinação. Escolha um local privado para guardá-lo. A senha profissional não é incluída.").setNegativeButton("Cancelar",null).setPositiveButton("Escolher local",(d,w)->{try{export(db.backup(),"application/json","EasyVacc-backup.json");}catch(Exception e){error(e);}}).show());
         if(!classroomDemo())button(body,"Restaurar backup",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");startActivityForResult(i,IMPORT);});
         if(!classroomDemo()&&db.hasAccount())button(body,"Alterar senha local",false,()->go("password"));button(body,"Ajuda e perguntas frequentes",false,()->go("help"));

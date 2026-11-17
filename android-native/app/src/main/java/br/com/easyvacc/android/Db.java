@@ -21,7 +21,7 @@ public final class Db extends SQLiteOpenHelper {
         public long n(String key) { try { return Long.parseLong(s(key)); } catch(Exception e) { return 0; } }
         @Override public String toString() { return s("name"); }
     }
-    public Db(Context context) { this(context,"easyvacc_native.db"); }
+    public Db(Context context) { this(context,MainActivity.isClassroomDemo(context)?"easyvacc_online_demo.db":"easyvacc_native.db"); }
     Db(Context context,String name) { super(context,name,null,2); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {

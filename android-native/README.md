@@ -164,3 +164,13 @@ Sem estoque registrado naquela unidade, o aplicativo informa o impedimento e nã
 de outro posto. A reserva continua dependendo de paciente e estoque real no EasyVacc, sem
 integração com a agenda oficial municipal. Compilação e assinatura verificadas; execução
 da interface em Android continua pendente.
+
+
+## Conta de aula online — 2.3.5
+O EasyVacc Demo abre uma sessão compartilhada de demonstração no site
+https://easyvacc-two.vercel.app. A primeira abertura exige internet.
+Os cadastros são sincronizados com o Firestore do site e podem ser recuperados
+em uma nova instalação. O painel informa a situação da sincronização.
+O Portal do Cidadão e o retorno ao Painel Profissional ficam acessíveis.
+A sessão pública de aula usa dados fictícios e dispensa digitar credenciais.
+O banco local da antiga demonstração permanece em arquivo separado.
