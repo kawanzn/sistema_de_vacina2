@@ -173,3 +173,16 @@ class OfflineSubmission(DocumentModel):
 
 # A lista de dependentes também é consultada no Firestore.
 Paciente.dependentes = property(lambda self: Paciente.objects.filter(responsavel_id=self.pk))
+
+
+class AndroidDoseLink(DocumentModel):
+    dose_id = models.BigIntegerField(unique=True)
+    appointment_id = models.BigIntegerField(unique=True)
+
+
+class AndroidSyncReceipt(DocumentModel):
+    request_id = models.CharField(max_length=36, unique=True)
+    request_hash = models.CharField(max_length=64)
+    user_id = models.BigIntegerField()
+    response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)

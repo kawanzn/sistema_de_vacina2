@@ -1,10 +1,14 @@
 from django.urls import path
-from vacinas import views 
+from vacinas import views, android_sync
 from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 
 
 urlpatterns = [
+    path('api/android/classroom/', android_sync.classroom_login, name='android_classroom'),
+    path('api/android/status/', android_sync.status, name='android_status'),
+    path('api/android/login/', android_sync.login, name='android_login'),
+    path('api/android/sync/', android_sync.sync, name='android_sync'),
     path('lembretes/', TemplateView.as_view(template_name='vacinas/lembretes.html'), name='lembretes'),
     path('admin/', views.configuracoes, name='configuracoes'),
     path('manifest.webmanifest', views.manifest, name='manifest'),
