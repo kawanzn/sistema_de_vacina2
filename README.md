@@ -1,3 +1,14 @@
+## APK online para a aula — 2.3.5
+
+[Baixar EasyVacc Demo online](https://github.com/kawanzn/sistema_de_vacina2/raw/refs/heads/login-android-sincronizado/releases/EasyVacc-Professor-Online-2.3.5.apk)
+
+Ao abrir o EasyVacc Demo, a conta de aula conecta automaticamente ao site
+https://easyvacc-two.vercel.app. A primeira abertura exige internet.
+Pacientes, doses, estoque e agendamentos fictícios ficam no banco compartilhado.
+O Portal do Cidadão e o retorno ao Painel Profissional permanecem acessíveis.
+Aguarde a indicação de sincronização concluída para recuperar as alterações em outro aparelho.
+Esta edição usa um banco local separado da demonstração antiga.
+
 # EasyVacc Android
 
 ## Web e APK 2.3.4 integrados
