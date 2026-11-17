@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public final class Db extends SQLiteOpenHelper {
     public static final class Row extends LinkedHashMap<String,String> {
@@ -97,6 +98,40 @@ public final class Db extends SQLiteOpenHelper {
         ContentValues v=new ContentValues();v.put("name",Rules.required(name,"nome da unidade",100));v.put("address",Rules.required(address,"endereço",255));
         v.put("district",Rules.required(district,"bairro",100));String z=Rules.digits(zip);if(z.length()!=8)throw new IllegalArgumentException("O CEP deve ter 8 dígitos.");v.put("zip",z);
         return insertRecord(getWritableDatabase(),"posts",v);
+    }
+    public long stockAtPost(String name,String lot,String amount,String expiry,String supplier,Row unit) {
+        SQLiteDatabase transaction=getWritableDatabase();
+        transaction.beginTransaction();
+        try {
+            long postId=unit.id();
+            if(postId==0){
+                String identity=Rules.postIdentity(unit.s("name"));
+                for(Row post:posts("")){
+                    if(Rules.postIdentity(post.s("name")).equals(identity)){
+                        postId=post.id();
+                        break;
+                    }
+                }
+                if(postId==0){
+                    ContentValues values=new ContentValues();
+                    values.put("name",Rules.required(unit.s("name"),"nome da unidade",100));
+                    values.put("address",Rules.required(unit.s("address"),"endereço",255));
+                    values.put("district",Rules.required(unit.s("district"),"bairro",100));
+                    String zip=Rules.digits(unit.s("zip"));
+                    values.put("zip",zip.length()==8?zip:"");
+                    // Independent phones importing the same catalog name use the same identity.
+                    long digest=UUID.nameUUIDFromBytes(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8)).getLeastSignificantBits();
+                    postId=5000000000000000L+(digest&0x0000ffffffffffffL);
+                    values.put("id",postId);
+                    transaction.insertOrThrow("posts",null,values);
+                }
+            }
+            long stockId=stock(name,lot,amount,expiry,supplier,postId);
+            transaction.setTransactionSuccessful();
+            return stockId;
+        }finally{
+            transaction.endTransaction();
+        }
     }
     public long stock(String name,String lot,String amount,String expiry,String supplier,long post) {
         row("posts",post);ContentValues v=new ContentValues();v.put("name",Rules.required(name,"nome da vacina",100));v.put("lot",Rules.required(lot,"lote",50));
@@ -225,7 +260,7 @@ public final class Db extends SQLiteOpenHelper {
                 for(int i=0;i<array.length();i++){
                     JSONObject r=array.getJSONObject(i);ContentValues values=new ContentValues();
                     for(String col:columns[t]){if(!r.has(col))throw new IllegalArgumentException("Backup incompleto: "+tables[t]+"/"+col);if(r.isNull(col)||col.equals("guardian_id"))values.putNull(col);else values.put(col,r.getString(col));}
-                    if(t==0){Rules.required(r.getString("name"),"nome da unidade",100);Rules.required(r.getString("address"),"endereço",255);String zip=Rules.digits(r.getString("zip"));if(zip.length()!=8)throw new IllegalArgumentException("CEP inválido no backup.");values.put("zip",zip);}
+                    if(t==0){Rules.required(r.getString("name"),"nome da unidade",100);Rules.required(r.getString("address"),"endereço",255);String zip=Rules.digits(r.getString("zip"));if(!r.getString("zip").isEmpty()&&zip.length()!=8)throw new IllegalArgumentException("CEP inválido no backup.");values.put("zip",zip);}
                     if(t==1){Rules.required(r.getString("name"),"nome da pessoa",200);String born=r.getString("dob");if(!Rules.iso(Rules.showDate(born)).equals(born)||born.compareTo(Rules.today())>0||born.compareTo("1900-01-01")<0)throw new IllegalArgumentException("Nascimento inválido no backup.");values.put("name_key",Rules.key(r.getString("name")));if(!r.isNull("cpf"))Rules.cpf(r.getString("cpf"));if(!r.isNull("sus")&&Rules.digits(r.getString("sus")).length()!=15)throw new IllegalArgumentException("SUS inválido no backup.");}
                     if(t==2){Rules.required(r.getString("name"),"vacina",100);Rules.required(r.getString("lot"),"lote",50);Rules.quantity(r.getString("qty"),true);Rules.quantity(r.getString("reserved"),true);String expiry=r.getString("expiry");if(!Rules.iso(Rules.showDate(expiry)).equals(expiry))throw new IllegalArgumentException("Validade inválida no backup.");}
                     if(t==3&&Long.parseLong(r.getString("when_at"))<=0)throw new IllegalArgumentException("Data de agendamento inválida no backup.");

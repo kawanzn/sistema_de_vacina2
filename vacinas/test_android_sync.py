@@ -38,6 +38,19 @@ class AndroidSyncTests(TestCase):
     def test_bootstrap_downloads_web_records(self):
         result=self.bootstrap()['snapshot'];self.assertEqual(len(result['patients']),1);self.assertEqual(result['stock'][0]['qty'],'5')
 
+    def test_lot_at_catalog_post_without_cep_syncs(self):
+        init = self.bootstrap()
+        local = copy.deepcopy(init['snapshot'])
+        post_id = '5000000000000001'
+        local['posts'].append(dict(id=post_id, name='ESF fictícia', address='Rua de teste', district='Bairro', zip=''))
+        lot = dict(local['stock'][0], id='1000000005555', lot='CATALOGO', post_id=post_id)
+        local['stock'].append(lot)
+        result = self.send(local, init['snapshot'], init['revision'])
+        self.assertEqual(result.status_code, 200, result.content)
+        saved = Estoque.objects.select_related('posto').get(pk=lot['id'])
+        self.assertEqual(saved.posto.nome, 'ESF fictícia')
+        self.assertEqual(saved.posto.cep, '')
+
     def test_offline_patient_is_visible_on_web(self):
         init=self.bootstrap();local=copy.deepcopy(init['snapshot']);new=copy.deepcopy(local['patients'][0]);new.update(id='1000000001234',cpf=None,name='Novo paciente offline');local['patients'].append(new)
         result=self.send(local,init['snapshot'],init['revision']);self.assertEqual(result.status_code,200,result.content);self.assertTrue(Paciente.objects.filter(pk=1000000001234,nome='Novo paciente offline').exists())

@@ -4,9 +4,11 @@
 
 O pacote **EasyVacc Demo** abre diretamente no painel profissional e carrega dados fictícios no primeiro uso. Use **Abrir Portal do Cidadão** e **Voltar ao Painel Profissional** para alternar sem login. A caderneta usa Marina Exemplo, já selecionada. O banco é local e separado da versão normal; a sincronização de registros é desativada.
 
+[Baixar EasyVacc Demo 2.3.2](../releases/EasyVacc-Demo-2.3.2.apk). Em Registrar Dose, selecione um posto do catálogo. Se precisar cadastrar um lote na demonstração, use dados fictícios.
+
 O GitHub Actions gera **EasyVacc-Professor** usando `assembleDemoDebug` e verifica também a compilação da versão normal.
 
-## Web e APK 2.3.0 integrados
+## Web e APK 2.3.2 integrados
 
 O portal [EasyVacc](https://easyvacc-android-servidor.vercel.app/portal/) usa o mesmo banco
 do APK quando a sincronização do aplicativo está configurada com esse servidor. A versão
@@ -34,12 +36,12 @@ permissão, cancelamento e abertura ao toque ainda precisam das evidências no d
 
 Aplicativo nativo Java/Views e SQLite, com modo offline e sincronização HTTPS com as mesmas
 tabelas do site. Sem WebView. Android 6 ou superior, pacote `br.com.easyvacc.android`, versionCode
-20200, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
+20302, targetSdk 35. A assinatura é a mesma de 2.0.0: instale por cima, sem desinstalar.
 
 ## Começar
 
-1. Instale `releases/EasyVacc-Android-2.3.0.apk`. Escolha Servidor Público ou Portal do Cidadão.
-2. No primeiro acesso profissional, use **Entrar com a conta do servidor** para configurar o acesso local e sincronizar com as mesmas credenciais. Para uso sem servidor, ainda é possível criar uma conta local.
+1. Instale `releases/EasyVacc-Android-2.3.2.apk`. Escolha Servidor Público ou Portal do Cidadão.
+2. Use **Entrar com a conta do servidor** com o usuário e a senha da conta profissional existente. Se já houver uma senha local no aparelho, ela continua disponível para uso offline.
 3. Em Mais > Sincronização, informe o domínio HTTPS e uma conta profissional existente no site.
    Esta opção manual continua disponível para aparelhos já configurados. O acesso local guarda apenas um hash da senha; a conexão guarda o token no armazenamento privado do app. Após reinstalar, entre novamente para recuperar os registros previamente sincronizados.
 4. Confira Sincronizar agora. Somente após uma resposta aceita os dados são apresentados como

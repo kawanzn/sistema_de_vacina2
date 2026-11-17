@@ -6,7 +6,8 @@ param(
     [string]$Platform='android-35',
     [string]$BuildTools='36.0.0',
     [string]$OutputDir=(Join-Path $PSScriptRoot 'build/output'),
-    [switch]$BuildDeviceTests
+    [switch]$BuildDeviceTests,
+    [switch]$Demo
 )
 $ErrorActionPreference='Stop'
 function Run-Checked([string]$Exe,[string[]]$Arguments) {
@@ -29,10 +30,21 @@ Copy-Item -LiteralPath $androidJar -Destination $platformCopy
 $androidJar=$platformCopy
 Run-Checked (Join-Path $toolsPath 'aapt2.exe') @('compile','--dir',(Join-Path $PSScriptRoot 'app/src/main/res'),'-o',(Join-Path $buildPath 'resources.zip'))
 $manifestXml=[xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot 'app/src/main/AndroidManifest.xml') -Raw)
-$manifestXml.DocumentElement.SetAttribute('package','br.com.easyvacc.android')
+$package='br.com.easyvacc.android'
+if($Demo){
+    if($BuildDeviceTests){throw 'A instrumentação deste script tem como alvo a edição normal.'}
+    $package+='.demo'
+    $androidNamespace='http://schemas.android.com/apk/res/android'
+    $manifestXml.manifest.application.SetAttribute('label',$androidNamespace,'EasyVacc Demo')
+    foreach($component in $manifestXml.SelectNodes('/manifest/application/activity | /manifest/application/receiver | /manifest/application/service')){
+        $className=$component.GetAttribute('name',$androidNamespace)
+        if($className.StartsWith('.')){$component.SetAttribute('name',$androidNamespace,'br.com.easyvacc.android'+$className)}
+    }
+}
+$manifestXml.DocumentElement.SetAttribute('package',$package)
 $manifestPath=Join-Path $buildPath 'AndroidManifest.xml'
 $manifestXml.Save($manifestPath)
-Run-Checked (Join-Path $toolsPath 'aapt2.exe') @('link','-o',(Join-Path $buildPath 'resources.apk'),'-I',$androidJar,'--manifest',$manifestPath,'--java',$generatedPath,'--version-code','20301','--version-name','2.3.1','--min-sdk-version','23','--target-sdk-version','35',(Join-Path $buildPath 'resources.zip'))
+Run-Checked (Join-Path $toolsPath 'aapt2.exe') @('link','-o',(Join-Path $buildPath 'resources.apk'),'-I',$androidJar,'--manifest',$manifestPath,'--custom-package','br.com.easyvacc.android','--java',$generatedPath,'--version-code','20302','--version-name','2.3.2','--min-sdk-version','23','--target-sdk-version','35',(Join-Path $buildPath 'resources.zip'))
 $sources=Get-ChildItem (Join-Path $PSScriptRoot 'app/src/main/java'),$generatedPath -Recurse -Filter '*.java' | ForEach-Object { '"'+$_.FullName.Replace('\','/')+'"' }
 $sourcesPath=Join-Path $buildPath 'sources.txt'
 [IO.File]::WriteAllLines($sourcesPath,$sources,[Text.UTF8Encoding]::new($false))
@@ -46,7 +58,8 @@ $archive=[IO.Compression.ZipFile]::Open($unsignedPath,[IO.Compression.ZipArchive
 try {foreach($file in Get-ChildItem $dexPath -Filter '*.dex'){[IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$file.FullName,$file.Name,[IO.Compression.CompressionLevel]::Optimal)|Out-Null}}finally{$archive.Dispose()}
 $alignedPath=Join-Path $buildPath 'aligned.apk'
 Run-Checked (Join-Path $toolsPath 'zipalign.exe') @('-f','-p','4',$unsignedPath,$alignedPath)
-$apkPath=Join-Path $OutputDir 'EasyVacc-Android-2.3.1.apk'
+$edition=if($Demo){'EasyVacc-Demo'}else{'EasyVacc-Android'}
+$apkPath=Join-Path $OutputDir "$edition-2.3.2.apk"
 Run-Checked $javaExe @('-jar',(Join-Path $toolsPath 'lib/apksigner.jar'),'sign','--ks',$SigningStore,'--ks-key-alias','easyvacc','--ks-pass',('file:'+$SigningPasswordFile),'--out',$apkPath,$alignedPath)
 Run-Checked $javaExe @('-jar',(Join-Path $toolsPath 'lib/apksigner.jar'),'verify','--verbose','--print-certs',$apkPath)
 Run-Checked (Join-Path $toolsPath 'zipalign.exe') @('-c','4',$apkPath)
