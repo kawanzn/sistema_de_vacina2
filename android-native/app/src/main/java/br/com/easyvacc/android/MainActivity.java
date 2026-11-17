@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
     private static final int LOCATION_PERMISSION=302;
     private final android.os.Handler cepHandler=new android.os.Handler(android.os.Looper.getMainLooper());
     private String cepRequested="";
-    private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if((!classroomDemo()||isClassroomDemo(this))&&!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
+    private final android.content.BroadcastReceiver syncReceiver=new android.content.BroadcastReceiver(){@Override public void onReceive(android.content.Context c,Intent i){if((!classroomDemo()||isClassroomDemo(MainActivity.this))&&!dirty&&!isFinishing()){if(citizen>0&&db.rows("SELECT id FROM patients WHERE id=?",String.valueOf(citizen)).isEmpty())citizen=0;render();}}};
     private final SimpleDateFormat timestamp=new SimpleDateFormat("dd/MM/yyyy HH:mm",new Locale("pt","BR"));
     static boolean isClassroomDemo(android.content.Context context){
         return context.getPackageName().equals("br.com.easyvacc.android.demo")
@@ -144,7 +144,8 @@ public class MainActivity extends Activity {
             if(!isClassroomDemo(this))button(body,"Sair da demonstração",false,this::finish);
         }
         switch(page){
-        if(classroomDemo() && (page.equals("login") || page.equals("localLogin") || page.equals("password"))){
+            case "connecting":heading("Conectando à conta de aula","Aguarde o login automático e o carregamento dos dados online.");break;
+            case "welcome":welcome();break;case "portal":portal();break;case "reports":reports();break;case "sync":syncPage();break;case "patientForm":patientForm(editingPatient);break;case "login":login();break;case "localLogin":localLogin();break;case "home":dashboard();break;
             case "patients":patients();break;case "stock":stocks();break;case "stockForm":stockForm();break;
             case "posts":posts();break;case "postForm":postForm();break;case "share":sharePage();break;
             case "dose":doseForm();break;case "identify":identify();break;case "card":patientCard(citizen);break;
